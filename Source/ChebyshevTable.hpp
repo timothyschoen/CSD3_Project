@@ -17,17 +17,18 @@ class ChebyshevFactory : public dsp::LookupTableTransform<float>
 {
     
 public:
-    ChebyshevFactory(int order, bool second_kind);
     
     static void deallocate();
-
     
-    static std::array<ChebyshevFactory*, num_polynomials> fillTables(bool second_kind);
+    static std::array<dsp::LookupTableTransform<float>*, num_polynomials> fillTables(bool second_kind);
     
-    inline static std::array<ChebyshevFactory*, num_polynomials> first_tables = fillTables(false);
-    inline static std::array<ChebyshevFactory*, num_polynomials> second_tables = fillTables(true);
+    inline static std::array<dsp::LookupTableTransform<float>*, num_polynomials> first_tables = fillTables(false);
+    inline static std::array<dsp::LookupTableTransform<float>*, num_polynomials> second_tables = fillTables(true);
     
     
+private:
+    
+    ChebyshevFactory(int order, bool second_kind);
 };
 
 
@@ -38,13 +39,16 @@ class ChebyshevTable
 public:
     //==============================================================================
     
-    
+    float scaling;
     bool enabled = true;
     float sample_rate;
-    int factor = 1;
-    dsp::LookupTableTransform<float> table;
     
-    dsp::Oversampling<float> oversampler;
+    int first_order = 1, second_order = 2;
+    float first_amp = 1.0, second_amp = 0.0;
+    float gain = 1.0;
+    
+    dsp::LookupTableTransform<float>* table1 = nullptr;
+    dsp::LookupTableTransform<float>* table2 = nullptr;
     
     dsp::ProcessorDuplicator<dsp::StateVariableFilter::Filter<float>, dsp::StateVariableFilter::Parameters<float>> svf;
     
@@ -58,11 +62,10 @@ public:
     ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind = false);
     
     void set_scaling(float amount);
-    void set_gain(float amount);
+    float get_scaling();
     
     
     void process(dsp::AudioBlock<float> input, dsp::AudioBlock<float> output, int num_samples);
-        
     
     void set_filter_type(int filterType);
     

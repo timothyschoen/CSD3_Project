@@ -15,7 +15,7 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (600, 300);
+    setSize (600, 290);
     
     setLookAndFeel(&lnf);
 
@@ -69,7 +69,7 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     nfilter_selector.set_custom_draw(SelectorButton::paint_filters);
     
     nfilter_selector.callback = [this](int selection){
-        double options[2] = {0.0, 0.8};
+        double options[3] = {-0.5, 0.0, 0.5};
         num_filters.setValue(options[selection]);
     };
     
@@ -95,10 +95,10 @@ void Distortion_ModellerAudioProcessorEditor::paint (juce::Graphics& g)
 
 void Distortion_ModellerAudioProcessorEditor::resized()
 {
-    nfilter_selector.setBounds(20, 215, 75, 30);
+    nfilter_selector.setBounds(20, 215, 80, 24);
     
-    gain_slider.setBounds(110, 215, 150, 24);
-    tone_slider.setBounds(110, 250, 150, 24);
+    gain_slider.setBounds(120, 215, 150, 24);
+    tone_slider.setBounds(120, 250, 150, 24);
     
     
     xy_pad.setBounds(0, 0, 600, 200);

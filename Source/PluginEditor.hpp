@@ -39,7 +39,7 @@ private:
     AnimatedSlider gain_slider;
     AnimatedSlider tone_slider;
     
-    SelectorComponent nfilter_selector = SelectorComponent(2, {"20", "50"});
+    SelectorComponent nfilter_selector = SelectorComponent(3, {"20", "50", "70"});
 
 
     Dark_LookAndFeel lnf;

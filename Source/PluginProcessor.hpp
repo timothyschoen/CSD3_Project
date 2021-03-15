@@ -56,7 +56,7 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
-    void valueTreeChildRemoved(ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved);
+    void valueTreeChildRemoved(ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) override;
     
     void valueTreePropertyChanged (ValueTree &treeWhosePropertyHasChanged, const Identifier &property) override;
     
@@ -69,6 +69,8 @@ private:
     
     moodycamel::ConcurrentQueue<std::function<void()>> queue;
     std::unique_ptr<GammatoneFilterBank> filter_bank;
+    
+    std::vector<std::vector<Hilbert>> hilbert;
         
     std::vector<std::vector<std::unique_ptr<ChebyshevTable>>> chebyshev_distortions;
     
@@ -81,15 +83,23 @@ private:
     int num_bands;
     int block_size;
     
-    std::vector<HeapBlock<char>> band_data;
+    int oversample_factor = 2;
+    float master_gain;
     
-    HeapBlock<char> temp_storage;
-    dsp::AudioBlock<float> temp_buffer;
+    std::vector<HeapBlock<char>> band_data;
+    std::vector<std::unique_ptr<PeakScaler>> peak_scalers;
+    
+    HeapBlock<char> temp_storage, temp_storage2, temp_storage3, temp_storage4;
+    dsp::AudioBlock<float> temp_buffer, temp_buffer2, instant_amp, inv_scaling;
+
     
     AudioBuffer<float> harmonics_buffer;
     std::vector<dsp::AudioBlock<float>> split_bands;
     
     dsp::ProcessorDuplicator<dsp::StateVariableFilter::Filter<float>, dsp::StateVariableFilter::Parameters<float>> tone_filter;
+    
+    
+    std::unique_ptr<dsp::Oversampling<float>> oversampler;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Distortion_ModellerAudioProcessor)
