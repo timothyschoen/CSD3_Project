@@ -65,7 +65,11 @@ public:
         
     }
 
+    ValueTree main_tree = ValueTree("Main");
+    
 private:
+    
+    
     
     moodycamel::ConcurrentQueue<std::function<void()>> queue;
     std::unique_ptr<GammatoneFilterBank> filter_bank;
@@ -77,29 +81,37 @@ private:
     void set_harmonic(int idx, HarmonicResponse response);
     void delete_harmonic(int idx);
     
-    void update_bands(double freq_range_overlap);
+    void update_bands(float freq_range_overlap);
     
-    double sample_rate;
+    float sample_rate;
     int num_bands;
     int block_size;
     
     int oversample_factor = 2;
-    float master_gain;
+    float master_volume;
+    
+    bool smooth_mode = false;
     
     std::vector<HeapBlock<char>> band_data;
     std::vector<std::unique_ptr<PeakScaler>> peak_scalers;
     
-    HeapBlock<char> temp_storage, temp_storage2, temp_storage3, temp_storage4;
-    dsp::AudioBlock<float> temp_buffer, temp_buffer2, instant_amp, inv_scaling;
+    HeapBlock<char> temp_storage, temp_storage2, temp_storage3, temp_storage4, temp_storage5,  temp_storage6;
+    
+    dsp::AudioBlock<float> temp_buffer, temp_buffer2, instant_amp, inv_scaling, filter_buffer, inv_filter;
 
     
     AudioBuffer<float> harmonics_buffer;
+    
+    
     std::vector<dsp::AudioBlock<float>> split_bands;
+
     
-    dsp::ProcessorDuplicator<dsp::StateVariableFilter::Filter<float>, dsp::StateVariableFilter::Parameters<float>> tone_filter;
-    
+    std::vector<dsp::StateVariableTPTFilter<float>> noise_filters;
     
     std::unique_ptr<dsp::Oversampling<float>> oversampler;
+    
+    float tone_cutoff;
+    float saturation = 1.0;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Distortion_ModellerAudioProcessor)

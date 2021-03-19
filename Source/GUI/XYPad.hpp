@@ -42,6 +42,6 @@ struct XYPad : public Component, public ValueTree::Listener
     std::function<void(XYSlider* slider)> update_callback = [](XYSlider* slider){
     };
     
-    int num_lines = 13;
+    int num_lines = 9;
     
 };

@@ -13,25 +13,14 @@
 struct PeakScaler
 {
     float gain = 1.0;
-    
-    float release_ms = 10.0;
-    
-    
-    float alpha_release;
-    float alpha_attack = 0.0;
-
-    dsp::ProcessorDuplicator<dsp::IIR::Filter<float>, dsp::IIR::Coefficients<float>> amp_filter;
+    float sample_rate;
     
     std::vector<Hilbert> hilbert;
     
-    std::vector<float> state;
-    dsp::AudioBlock<float> max_values;
-    dsp::AudioBlock<float> inv_values;
+    dsp::AudioBlock<float> max_values, inv_values;
+    HeapBlock<char> value_data, inv_data;
     
-    HeapBlock<char> value_data;
-    HeapBlock<char> inv_data;
-    
-    PeakScaler(const dsp::ProcessSpec& spec);
+    PeakScaler(const dsp::ProcessSpec& spec, int oversample_factor);
 
     void set_gain(float gain_amount);
     

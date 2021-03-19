@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../LookAndFeel.hpp"
 
 struct AnimatedSlider : public Slider
 {
@@ -27,7 +28,8 @@ struct AnimatedSlider : public Slider
         Colour bg_colour = findColour(Slider::backgroundColourId);
         
         if(isHorizontal()) {
-            g.setColour(track_colour);
+            //g.setColour(track_colour);
+            g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
             g.fillRect(Rectangle<float>(0.0, 0.0, position, height));
             
             g.setColour(bg_colour);
@@ -35,17 +37,20 @@ struct AnimatedSlider : public Slider
             
             Rectangle<float> bounds = {position - (thumb_width / 2.0f), 0.0f, thumb_width, height};
             
-            g.setColour(findColour(Slider::thumbColourId));
-            g.fillRect(bounds);
+            g.setGradientFill(ColourTheme::add_shadow(theme_colour, height));
+            //g.setColour();
+            g.fillRoundedRectangle(bounds, 3.0f);
             
             g.setColour(Colours::white);
-            g.drawRect(bounds, 1.0);
+            g.drawRoundedRectangle(bounds.reduced(0.0, 1.0), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
             
         }
         else {
-            g.setColour(track_colour);
+            //g.setColour(track_colour);
+            
+            g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
             g.fillRect(Rectangle<float>(0.0, 0.0, width, position));
                         
             g.setColour(bg_colour);
@@ -53,18 +58,25 @@ struct AnimatedSlider : public Slider
             
             Rectangle<float> bounds = {0.0f, position - (thumb_width / 2.0f), width, thumb_width};
             
-            g.setColour(findColour(Slider::thumbColourId));
-            g.fillRect(bounds);
+            g.setGradientFill(ColourTheme::add_shadow(theme_colour, height));
+            g.fillRoundedRectangle(bounds, 3.0f);
+            
+            
             
             g.setColour(Colours::white);
-            g.drawRect(bounds, 1.0);
+            g.drawRoundedRectangle(bounds.reduced(2.0, 2.0), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
 
         }
     }
     
+    void set_colour(int colour) {
+        theme_colour = ColourTheme::highlights[colour];
+    }
     
+    
+    Colour theme_colour = ColourTheme::highlights[0];
     Value filter_type;
         
     AnimatedSlider() {

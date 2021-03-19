@@ -24,23 +24,26 @@ public:
 
     
     Value num_filters;
+    Value smooth_mode;
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    ValueTree main_tree;
+    
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Distortion_ModellerAudioProcessor& audioProcessor;
     
-    ValueTree main_tree = ValueTree("Main");
     XYPad xy_pad;
     
-    AnimatedSlider gain_slider;
-    AnimatedSlider tone_slider;
+    AnimatedSlider gain_slider, tone_slider, volume_slider, saturation_slider;
     
-    SelectorComponent nfilter_selector = SelectorComponent(3, {"20", "50", "70"});
+    SelectorComponent nfilter_selector = SelectorComponent({"20", "50", "70"});
+    SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});
 
+    SelectorComponent smooth_button = SelectorComponent({"Smooth"});
 
     Dark_LookAndFeel lnf;
     

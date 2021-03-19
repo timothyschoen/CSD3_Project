@@ -17,7 +17,8 @@ const float ANTI_DENORMAL_FLOAT = 1e-15f;
 class Hilbert
 {
 public:
-    Hilbert() {
+    Hilbert(int oversample_factor) {
+        oversamp = oversample_factor;
         FloatVectorOperations::fill(s, 0, 33);
         adidx = 0;
         GetAntiDenormalTable(adtab,16);
@@ -51,8 +52,10 @@ public:
         float adn[2];
         adn[0] = adtab[adidx]; adn[1] = adtab[adidx+1]; adidx = (adidx+2) & 0xe;
         float xa,xb,adin;
-        for (int i=0; i<samples; i++) {
-            adin = in[i] + adn[i&1];
+        
+        for (int i = 0; i < samples / oversamp; i++) {
+            // Only process non-oversampled samples
+            adin = in[i * oversamp] + adn[i&1];
 
             // out1 filter chain: 8 allpasses + 1 unit delay
             xa = s[1] - 0.999533593f*adin;        s[1] = s[0];
@@ -71,7 +74,10 @@ public:
             s[12] = xb + 0.590957946f*xa;
             xb = s[15] - 0.219852059f*xa;        s[15] = s[14];
             s[14] = xa + 0.219852059f*xb;
-            out1[i] = s[32]; s[32] = xb;
+            for(int o = 0; o < oversamp; o++) {
+                out1[i * oversamp + o] = s[32];
+            }
+            s[32] = xb;
 
             // out2 filter chain: 8 allpasses
             xa = s[17] - 0.998478404f*adin;       s[17] = s[16];
@@ -88,12 +94,17 @@ public:
             s[26] = xa + 0.729672406f*xb;
             xa = s[29] - 0.413200818f*xb;        s[29] = s[28];
             s[28] = xb + 0.413200818f*xa;
-            out2[i] = s[31] - 0.061990080f*xa;    s[31] = s[30];
-            s[30] = xa + 0.061990080f*out2[i];
+            float out = s[31] - 0.061990080f*xa;
+            for(int o = 0; o < oversamp; o++) {
+                out2[i * oversamp + o] = out;
+            }
+            s[31] = s[30];
+            s[30] = xa + 0.061990080f*out2[i * oversamp];
         }
     }
     
 private:
+    int oversamp;
     float s[33];
     int adidx;
     float adtab[16];

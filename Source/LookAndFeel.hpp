@@ -2,11 +2,25 @@
 
 #include <JuceHeader.h>
 
+struct ColourTheme
+{
+    inline static Colour main_bg = Colour(33, 34, 43);
+    inline static Colour bg_light = Colour(40, 40, 55);
+    inline static Colour bg_lighter = Colour(46, 46, 57);
+    
+    static ColourGradient add_shadow(Colour base, float height) {
+        return ColourGradient(base, 0.0f, 0.0f, base.darker(0.15), 0.0f, height, false);
+        
+    }
+
+    inline static Colour highlights[5] = {Colour(114, 37, 202), Colour(226, 60, 68),  Colour(85, 149, 218), Colour(60, 193, 83), Colour(225, 107, 38)};
+};
+
 struct Dark_LookAndFeel : public LookAndFeel_V4
 {
     
     Dark_LookAndFeel() {
-        setColour(TextButton::buttonColourId, Colour(26, 26, 26));
+        setColour(TextButton::buttonColourId, ColourTheme::main_bg);
         setColour(TextButton::buttonOnColourId, Colour(131, 37, 251));
         
         
@@ -19,7 +33,7 @@ struct Dark_LookAndFeel : public LookAndFeel_V4
     
     void drawButtonBackground (Graphics& g, Button& button, const Colour& backgroundColour, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
     {
-        auto cornerSize = 4.0f;
+        auto cornerSize = 2.0f;
         auto bounds = button.getLocalBounds().toFloat().reduced (0.5f, 0.5f);
 
         auto baseColour = backgroundColour.withMultipliedSaturation (1.3f)
@@ -28,7 +42,7 @@ struct Dark_LookAndFeel : public LookAndFeel_V4
         if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
             baseColour = baseColour.contrasting (shouldDrawButtonAsDown ? 0.2f : 0.05f);
 
-        g.setColour (baseColour);
+        g.setGradientFill(ColourTheme::add_shadow(baseColour, bounds.getHeight()));
 
         auto flatOnLeft   = button.isConnectedOnLeft();
         auto flatOnRight  = button.isConnectedOnRight();

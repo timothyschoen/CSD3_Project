@@ -15,9 +15,6 @@ XYSlider::XYSlider(ValueTree tree) : slider_tree(tree)
     
     setClickingTogglesState(true);
     setRadioGroupId(1);
-    
-    init_valuetree();
-    
 }
 
 int XYSlider::get_index() {
@@ -35,8 +32,8 @@ void XYSlider::init_valuetree()
         slider_tree.setProperty("Enabled", true, nullptr);
         slider_tree.setProperty("Kind", 0, nullptr);
         slider_tree.setProperty("FilterType", 0, nullptr);
-        slider_tree.setProperty("FilterQ", 0.1, nullptr);
-        slider_tree.setProperty("FilterHz", 10000, nullptr);
+        slider_tree.setProperty("ModDepth", 0.1, nullptr);
+        slider_tree.setProperty("ModRate", 5.0, nullptr);
         slider_tree.setProperty("Clarity", 1.0, nullptr);
         slider_tree.addListener(this);
     }
@@ -74,7 +71,7 @@ std::pair<float, float> XYSlider::get_xy_values()
 
 void XYSlider::paint(Graphics& g)
 {
-    auto background_colour = Colour(131, 37, 251);
+    auto background_colour = ColourTheme::highlights[get_index()];
     auto bounds = getLocalBounds().toFloat();
 
     auto base_colour = background_colour.withMultipliedSaturation(1.3f).withMultipliedAlpha (isEnabled() ? 1.0f : 0.5f);

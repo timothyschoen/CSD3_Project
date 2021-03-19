@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "Graphs.hpp"
+#include "../LookAndFeel.hpp"
 
 struct SelectorButton : public TextButton
 {
@@ -39,9 +40,11 @@ struct SelectorButton : public TextButton
     static void paint_filters(int selection, Graphics& g, SelectorButton& button)
     {
         auto bounds = button.getBounds();
-        Path lp_path = Graphs::draw_filter(selection == 1 ? 0.5 : 0.65, 0.0, bounds.getWidth(), bounds.getHeight(), 0);
+        
+        
+        Path lp_path = Graphs::draw_filter((0.5 - (selection * 0.1)) * 0.9, 0.0, bounds.getWidth(), bounds.getHeight(), 0);
 
-        Path hp_path = Graphs::draw_filter(selection == 1 ? 1.0 : 0.75 , 0.0, bounds.getWidth(), bounds.getHeight(), 2);
+        Path hp_path = Graphs::draw_filter((0.50 + (selection * 0.1)) * 1.1 , 0.0, bounds.getWidth(), bounds.getHeight(), 2);
         
         float alpha = button.getToggleState() ? 0.5f : 0.25f;
         
@@ -51,12 +54,27 @@ struct SelectorButton : public TextButton
         g.strokePath(lp_path, PathStrokeType(1.0));
         
         if(selection == 1) {
-            Path bp_path = Graphs::draw_filter(0.8, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            Path bp_path = Graphs::draw_filter(0.5, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
             
             g.setColour(Colours::white.withAlpha(alpha));
             g.fillPath(bp_path);
             g.setColour(Colours::white);
             g.strokePath(bp_path, PathStrokeType(1.0));
+        }
+        if(selection == 2) {
+            Path bp_path1 = Graphs::draw_filter(0.4, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            
+            g.setColour(Colours::white.withAlpha(alpha));
+            g.fillPath(bp_path1);
+            g.setColour(Colours::white);
+            g.strokePath(bp_path1, PathStrokeType(1.0));
+            
+            Path bp_path2 = Graphs::draw_filter(0.6, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            
+            g.setColour(Colours::white.withAlpha(alpha));
+            g.fillPath(bp_path2);
+            g.setColour(Colours::white);
+            g.strokePath(bp_path2, PathStrokeType(1.0));
         }
         
         g.setColour(Colours::white.withAlpha(alpha));
@@ -78,25 +96,36 @@ struct SelectorComponent : public Component
     
     Value current_selection;
     
-    SelectorComponent(int num_options, StringArray titles) {
+    SelectorComponent(StringArray titles) {
+        int num_options = titles.size();
         
-        
-        for(int i = 0; i < num_options; i++) {
-            auto* button = buttons.add(new SelectorButton(titles[i]));
-            button->setRadioGroupId(1110);
-            button->setConnectedEdges(3);
-            button->onClick = [this, i]() mutable {
-                current_selection.setValue(i);
-                callback(i);
+        if(num_options > 1) {
+            for(int i = 0; i < num_options; i++) {
+                auto* button = buttons.add(new SelectorButton(titles[i]));
+                button->setRadioGroupId(1110);
+                button->setConnectedEdges(3);
+                button->onClick = [this, i]() mutable {
+                    current_selection.setValue(i);
+                    callback(i);
+                };
+                addAndMakeVisible(button);
+            }
+            buttons.getFirst()->setConnectedEdges(2);
+            buttons.getLast()->setConnectedEdges(1);
+            buttons.getFirst()->setToggleState(true, sendNotification);
+        }
+        else {
+            auto* button = buttons.add(new SelectorButton(titles[0]));
+            button->onClick = [this, button]() mutable {
+                bool value = button->getToggleState();
+                current_selection.setValue(value);
+                callback(value);
             };
             addAndMakeVisible(button);
         }
         
-        buttons.getFirst()->setConnectedEdges(2);
-        buttons.getLast()->setConnectedEdges(1);
-        
         current_selection.setValue(0);
-        buttons.getFirst()->setToggleState(true, sendNotification);
+
     }
     
     Value& getValueObject() {
@@ -111,7 +140,7 @@ struct SelectorComponent : public Component
         
         for(int i = 0; i < num_items; i++) {
             
-            buttons[i]->setBounds(i * width, 0, width + 1, height);
+            buttons[i]->setBounds(i * width, 0, width + (num_items != 1), height);
         }
     }
     
@@ -124,7 +153,12 @@ struct SelectorComponent : public Component
             };
         }
     }
-        
+    
+    void set_colour(int new_colour) {
+        for(auto& button : buttons) {
+            button->setColour(TextButton::buttonOnColourId, ColourTheme::highlights[new_colour]);
+        }
+    }
     
     
 };

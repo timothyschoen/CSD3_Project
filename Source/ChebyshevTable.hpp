@@ -43,33 +43,45 @@ public:
     bool enabled = true;
     float sample_rate;
     
-    int first_order = 1, second_order = 2;
-    float first_amp = 1.0, second_amp = 0.0;
-    float gain = 1.0;
+    float poly_order;
+    float gain;
+    
+    std::array<dsp::LookupTableTransform<float>*, num_polynomials>* current_table;
     
     dsp::LookupTableTransform<float>* table1 = nullptr;
     dsp::LookupTableTransform<float>* table2 = nullptr;
+        
+    dsp::StateVariableTPTFilter<float> svf;
     
-    dsp::ProcessorDuplicator<dsp::StateVariableFilter::Filter<float>, dsp::StateVariableFilter::Parameters<float>> svf;
     
     std::unique_ptr<PeakScaler> scaler;
     
-    float last_cutoff = 20000;
-    float last_q = 0.1;
     float shift;
     float g;
+    
+    
+    std::vector<float> sine_phase;
+    
+    float mod_freq = 2.0;
+    float mod_depth = 0.25;
+    
     
     ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind = false);
     
     void set_scaling(float amount);
     float get_scaling();
     
+    dsp::AudioBlock<float> feedback;
+    HeapBlock<char> feedback_data;
+    
     
     void process(dsp::AudioBlock<float> input, dsp::AudioBlock<float> output, int num_samples);
     
     void set_filter_type(int filterType);
+    void set_filter_cutoff(float cutoff);
+    void set_filter_resonance(float resonance);
     
-    void set_filter_cutoff(float cutoff, float resonance = 1.0 / sqrt(2.0));
+    void set_stereo(bool stereo);
     
     void set_table(float order, float gain, bool second_kind = false);
 

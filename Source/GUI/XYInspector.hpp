@@ -29,13 +29,13 @@ struct XYInspector : public Component
     SafePointer<XYSlider> selection = nullptr;
     
     AnimatedSlider clarity;
-    AnimatedSlider filter_q;
-    AnimatedSlider filter_cutoff;
+    AnimatedSlider mod_depth;
+    AnimatedSlider mod_rate;
     
     TextButton delete_slider = TextButton("x");
     
-    SelectorComponent kind_select = SelectorComponent(2, {"I", "II"});
-    SelectorComponent filter_select = SelectorComponent(3, {"LP", "BP", "HP"});
+    SelectorComponent kind_select = SelectorComponent({"I", "II"});
+    SelectorComponent filter_select = SelectorComponent({"LP", "BP", "HP"});
     
     TextButton enabled_button = TextButton("E");
     

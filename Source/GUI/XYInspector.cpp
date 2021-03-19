@@ -7,6 +7,7 @@
 
 #include "XYPad.hpp"
 #include "Graphs.hpp"
+#include "../LookAndFeel.hpp"
 
 XYInspector::XYInspector() {
     
@@ -14,14 +15,23 @@ XYInspector::XYInspector() {
     enabled_button.setConnectedEdges(12);
     
     
+    clarity.set_colour(0);
+    kind_select.set_colour(0);
 
+    mod_depth.set_colour(2);
+    mod_rate.set_colour(2);
+    filter_select.set_colour(2);
     
     clarity.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
+        g.setFont(Font(7));
+        
         g.setColour(Colours::white);
+        g.drawText("SHP", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        
         g.strokePath(shape, PathStrokeType(1.0));
     };
     
@@ -32,8 +42,8 @@ XYInspector::XYInspector() {
     
     filter_select.callback = [this](int option) {
         filter_selection.setValue(option);
-        filter_cutoff.filter_type.setValue(option);
-        filter_q.filter_type.setValue(option);
+        mod_rate.filter_type.setValue(option);
+        mod_depth.filter_type.setValue(option);
         repaint();
     };
     
@@ -48,30 +58,37 @@ XYInspector::XYInspector() {
         current_tree.getParent().removeChild(current_tree, nullptr);
     };
     
-    filter_q.setRange(0.1, 1.0);
-    filter_q.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
-        auto shape = Graphs::draw_filter(0.7, value, bounds.getWidth(), bounds.getHeight(), filter_selection.getValue());
+    mod_depth.setRange(0.0, 1.0);
+    mod_depth.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+
+        auto shape = Graphs::sine_to_square(0.7, value, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
         g.setColour(Colours::white.withAlpha(0.5f));
         g.fillPath(shape);
         
+        g.setFont(Font(7));
+        
         g.setColour(Colours::white);
+        g.drawText("DTH", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0));
     };
     
-    filter_cutoff.setRange(1.0, 20000.0);
-    filter_cutoff.setSkewFactor(0.25);
-    filter_cutoff.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
-        auto shape = Graphs::draw_filter(value, 0.0, bounds.getWidth(), bounds.getHeight(), filter_selection.getValue());
+    mod_rate.setRange(1.0, 8.0);
+    mod_rate.setSkewFactor(0.25);
+    mod_rate.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::waveshape_hz(value, 0.0, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
         g.setColour(Colours::white.withAlpha(0.5f));
         g.fillPath(shape);
         
+        g.setFont(Font(7));
+        
         g.setColour(Colours::white);
+        g.drawText("RT", bounds.getX() + 3, bounds.getY() + 2, 17, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0));
     };
     
@@ -80,8 +97,8 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(enabled_button);
     settings.addAndMakeVisible(filter_select);
     settings.addAndMakeVisible(clarity);
-    settings.addAndMakeVisible(filter_q);
-    settings.addAndMakeVisible(filter_cutoff);
+    settings.addAndMakeVisible(mod_depth);
+    settings.addAndMakeVisible(mod_rate);
     settings.addAndMakeVisible(delete_slider);
     
     set_selection(nullptr);
@@ -105,15 +122,15 @@ void XYInspector::resized()
     
 
     filter_select.setBounds(10 + item_width / 6.0, 105, item_width / 1.5, 20);
-    filter_cutoff.setBounds(10, 135, item_width, item_height);
-    filter_q.setBounds(10, 165, item_width, item_height);
+    mod_rate.setBounds(10, 135, item_width, item_height);
+    mod_depth.setBounds(10, 165, item_width, item_height);
     
     
 }
 
 void XYInspector::paint(Graphics& g)
 {
-    g.fillAll(Colour(26, 26, 26));
+    g.fillAll(ColourTheme::bg_light);
     
     if(!selection) {
         g.setColour(Colours::white);
@@ -128,7 +145,9 @@ void XYInspector::set_selection(XYSlider* slider) {
     if(selection) {
         settings.setVisible(true);
         attach_to_tree(selection->slider_tree);
-        enabled_button.setButtonText(String(selection->get_index() + 1));
+        int idx = selection->get_index();
+        enabled_button.setButtonText(String(idx + 1));
+        //enabled_button.setColour(TextButton::buttonOnColourId, ColourTheme::highlights[idx]);
     }
     else {
         settings.setVisible(false);
@@ -143,9 +162,9 @@ void XYInspector::attach_to_tree(ValueTree tree)
     
     filter_selection.referTo(tree.getPropertyAsValue("FilterType", nullptr));
     
-    filter_q.getValueObject().referTo(tree.getPropertyAsValue("FilterQ", nullptr));
+    mod_depth.getValueObject().referTo(tree.getPropertyAsValue("ModDepth", nullptr));
     
-    filter_cutoff.getValueObject().referTo(tree.getPropertyAsValue("FilterHz", nullptr));
+    mod_rate.getValueObject().referTo(tree.getPropertyAsValue("ModRate", nullptr));
     
     
     kind_selection.referTo(tree.getPropertyAsValue("Kind", nullptr));

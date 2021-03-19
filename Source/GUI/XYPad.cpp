@@ -6,7 +6,7 @@
 //
 
 #include "XYPad.hpp"
-
+#include "../LookAndFeel.hpp"
 
 
 XYPad::XYPad(ValueTree parent_tree)
@@ -27,6 +27,7 @@ XYPad::XYPad(ValueTree parent_tree)
         };
         
         pad.addAndMakeVisible(slider);
+        slider->init_valuetree();
         
     };
     
@@ -58,12 +59,12 @@ void XYPad::resized()
 
 void XYPad::paint(Graphics& g)
 {
-    g.fillAll(Colour(22, 22, 22));
+    g.fillAll(ColourTheme::main_bg);
     
     int line_spacing = pad.getWidth() / num_lines;
     
-    g.setColour(Colours::white.withAlpha((float)0.6));
     for(int i = 0; i < num_lines; i++) {
+        g.setColour(i % 2 ? Colours::white.withAlpha((float)0.6) : Colours::white.withAlpha((float)0.3));
         g.drawLine(i * line_spacing, 0, i * line_spacing, getHeight());
     }
 }

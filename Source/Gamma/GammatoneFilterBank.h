@@ -9,15 +9,15 @@ class GammatoneFilterBank
 {
 public:    
     
-    GammatoneFilterBank(double rate, int block_size, int channels, float filter_q = 8, float filter_min_width = 125);
+    GammatoneFilterBank(float rate, int block_size, int channels, float filter_q = 8, float filter_min_width = 125);
     
     ~GammatoneFilterBank();
     
-    unsigned InitWithFreqRangeOverlap(double _lowFreq, double _highFreq, double _overlap);
+    unsigned InitWithFreqRangeOverlap(float _lowFreq, float _highFreq, float _overlap);
     
-    double InitWithFreqRangeNumFilters(double _lowFreq, double _highFreq, unsigned _numFilters);
+    float InitWithFreqRangeNumFilters(float _lowFreq, float _highFreq, unsigned _numFilters);
     
-    void AddFilter(unsigned _order, double _freq, double _erb);
+    void AddFilter(unsigned _order, float _freq, float _erb);
 
     void RemoveFilters();
 
@@ -28,7 +28,7 @@ public:
     std::vector<std::vector<GammatoneFilter*>> filters;            // Hold the filters in the Bank.
 private:
 
-    double sample_rate;							// Default sampling freq for adding filters
+    float sample_rate;							// Default sampling freq for adding filters
     float q;
     float min_width;
     float bw;

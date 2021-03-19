@@ -27,7 +27,7 @@
 
 #define GAMMATONE_FILTER_ORDER 4
 
-GammatoneFilterBank::GammatoneFilterBank(double rate, int size, int channels, float filter_q, float filter_min_width)
+GammatoneFilterBank::GammatoneFilterBank(float rate, int size, int channels, float filter_q, float filter_min_width)
 {
     
     num_channels = channels;
@@ -44,9 +44,9 @@ GammatoneFilterBank::~GammatoneFilterBank()
 {
 }
 
-unsigned GammatoneFilterBank::InitWithFreqRangeOverlap(double _lowFreq, double _highFreq, double _overlap)
+unsigned GammatoneFilterBank::InitWithFreqRangeOverlap(float _lowFreq, float _highFreq, float _overlap)
 {
-    double stepfactor = 1.0 - _overlap;
+    float stepfactor = 1.0 - _overlap;
     if(_overlap >= 1)
     {
         //SET_RESULT(RESULT_ERROR_OUTOFRANGE, "overlap must be less than 1");
@@ -60,7 +60,7 @@ unsigned GammatoneFilterBank::InitWithFreqRangeOverlap(double _lowFreq, double _
     
     RemoveFilters();
     
-    double num_filters;
+    float num_filters;
     
     num_filters = -(q * log(_lowFreq + min_width)) / stepfactor;
     num_filters += (q * log(_highFreq + min_width)) / stepfactor;
@@ -71,10 +71,10 @@ unsigned GammatoneFilterBank::InitWithFreqRangeOverlap(double _lowFreq, double _
     
     for(int i = 0; i <= num_filters; i++)
     {
-        double denominator = exp(i * stepfactor / q);
-        double center_freq = -min_width;
+        float denominator = exp(i * stepfactor / q);
+        float center_freq = -min_width;
         center_freq += (_highFreq + min_width) / denominator;
-        double bandwidth = (center_freq / q) + min_width;
+        float bandwidth = (center_freq / q) + min_width;
         AddFilter(GAMMATONE_FILTER_ORDER, center_freq, bandwidth);
     }
     
@@ -82,20 +82,20 @@ unsigned GammatoneFilterBank::InitWithFreqRangeOverlap(double _lowFreq, double _
 }
 
 //////////////////////////////////////////////
-double GammatoneFilterBank::InitWithFreqRangeNumFilters(double _lowFreq, double _highFreq, unsigned _numFilters)
+float GammatoneFilterBank::InitWithFreqRangeNumFilters(float _lowFreq, float _highFreq, unsigned _numFilters)
 {
     
     _numFilters -= 1; //there will be an extra one at the nyquist freq
-    double stepfactor = log(_highFreq + min_width) - log(_lowFreq + min_width);
+    float stepfactor = log(_highFreq + min_width) - log(_lowFreq + min_width);
     stepfactor *= q / _numFilters;
-    double overlap = 1-stepfactor;
+    float overlap = 1-stepfactor;
     InitWithFreqRangeOverlap(_lowFreq, _highFreq, overlap);
     return overlap;
 }
 
 
 //////////////////////////////////////////////
-void GammatoneFilterBank::AddFilter(unsigned _order, double _freq, double _erb)
+void GammatoneFilterBank::AddFilter(unsigned _order, float _freq, float _erb)
 {
     for(int ch = 0; ch < num_channels; ch++) {
         filters[ch].push_back(new GammatoneFilter(sample_rate, block_size, _order, _freq, _erb));
@@ -119,13 +119,13 @@ void GammatoneFilterBank::RemoveFilters()
 //////////////////////////////////////////////
 int GammatoneFilterBank::GetNumFilters()
 {
-    return filters[0].size();
+    return (int)filters[0].size();
 }
 
 //////////////////////////////////////////////
 void GammatoneFilterBank::process(dsp::AudioBlock<float> inBuffer, std::vector<dsp::AudioBlock<float>> outBuffer)
 {
-    int size = inBuffer.getNumSamples();
+    int size = (int)inBuffer.getNumSamples();
     
     assert(inBuffer.getNumChannels() == num_channels);
     

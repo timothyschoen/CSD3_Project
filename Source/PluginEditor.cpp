@@ -11,8 +11,9 @@
 #include "GUI/Graphs.hpp"
 //==============================================================================
 Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor (Distortion_ModellerAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), xy_pad(main_tree)
+    : AudioProcessorEditor (&p), audioProcessor (p), main_tree(p.main_tree), xy_pad(main_tree)
 {
+    
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (600, 290);
@@ -21,12 +22,27 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
 
     addAndMakeVisible(tone_slider);
     addAndMakeVisible(gain_slider);
+    
+    addAndMakeVisible(volume_slider);
+    addAndMakeVisible(saturation_slider);
+    
+    addAndMakeVisible(smooth_button);
+    
     addAndMakeVisible(xy_pad);
     
     tone_slider.setRange(0.0, 1.0);
     gain_slider.setRange(0.0, 1.0);
+    volume_slider.setRange(0.0, 1.0);
+    saturation_slider.setRange(0.0, 1.0);
     
-    tone_slider.setSkewFactor(0.25);
+    saturation_slider.setSkewFactor(2.0);
+    
+    saturation_slider.set_colour(1);
+    tone_slider.set_colour(1);
+    
+    gain_slider.set_colour(3);
+    volume_slider.set_colour(3);
+
     
     tone_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::draw_filter(value, 0.0, bounds.getWidth(), bounds.getHeight(), 0);
@@ -36,16 +52,44 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
         g.setColour(Colours::white.withAlpha(0.5f));
         g.fillPath(shape);
         
+        g.setFont(Font(7));
         g.setColour(Colours::white);
+        g.drawText("TONE", bounds.getX() + 3, bounds.getY() + 2, 17, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0));
     };
     
     gain_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::sine_to_square(0.8 - (value / 2.0), value, bounds.getWidth(), bounds.getHeight(), 3);
+        
+        shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
+        
+        g.setFont(Font(7));
+        g.setColour(Colours::white);
+        
+        g.drawText("IN", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.strokePath(shape, PathStrokeType(1.0));
+    };
+    
+    volume_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(0.5, value, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
+        g.setFont(Font(7));
         g.setColour(Colours::white);
+        g.drawText("OUT", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.strokePath(shape, PathStrokeType(1.0));
+    };
+    
+    saturation_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::sine_to_square(1.0 - value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
+        
+        shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
+        
+        g.setFont(Font(7));
+        
+        g.setColour(Colours::white);
+        g.drawText("SAT", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0));
     };
 
@@ -53,26 +97,45 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     //intermodulation_slider.setRange(0.05, 1.0);
     
     addAndMakeVisible(nfilter_selector);
+    addAndMakeVisible(quality_selector);
     
-    
-    main_tree.addListener(&audioProcessor);
+
     
     main_tree.setProperty("Intermodulation", 0.1, nullptr);
     main_tree.setProperty("Tone", 1.0, nullptr);
     main_tree.setProperty("Gain", 1.0, nullptr);
+    main_tree.setProperty("Volume", 1.0, nullptr);
+    main_tree.setProperty("Saturation", 0.5, nullptr);
+    main_tree.setProperty("Smooth", false, nullptr);
     
     num_filters.referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
+    smooth_mode.referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
+    
     tone_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Tone", nullptr));
     gain_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Gain", nullptr));
+    volume_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Volume", nullptr));
+    saturation_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Saturation", nullptr));
     
    
     nfilter_selector.set_custom_draw(SelectorButton::paint_filters);
     
     nfilter_selector.callback = [this](int selection){
-        double options[3] = {-0.5, 0.0, 0.5};
+        float options[3] = {-0.8, 0.0, 0.3};
         num_filters.setValue(options[selection]);
     };
     
+    smooth_button.callback = [this](int selection){
+        smooth_mode.setValue(selection);
+    };
+    
+    
+    quality_selector.callback = [this](int selection){
+       
+    };
+    
+    nfilter_selector.set_colour(0);
+    quality_selector.set_colour(0);
+    smooth_button.set_colour(4);
     
 }
 
@@ -84,24 +147,21 @@ Distortion_ModellerAudioProcessorEditor::~Distortion_ModellerAudioProcessorEdito
 //==============================================================================
 void Distortion_ModellerAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    
-    
-    g.fillAll(Colour(18, 18, 18));
-    
-    
-
+    g.fillAll(ColourTheme::bg_lighter);
 }
 
 void Distortion_ModellerAudioProcessorEditor::resized()
 {
     nfilter_selector.setBounds(20, 215, 80, 24);
+    quality_selector.setBounds(20, 250, 80, 24);
     
-    gain_slider.setBounds(120, 215, 150, 24);
+    saturation_slider.setBounds(120, 215, 150, 24);
     tone_slider.setBounds(120, 250, 150, 24);
     
+    gain_slider.setBounds(300, 215, 150, 24);
+    volume_slider.setBounds(300, 250, 150, 24);
+    
+    smooth_button.setBounds(getWidth() - 100, 215, 68, 24);
     
     xy_pad.setBounds(0, 0, 600, 200);
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
 }
