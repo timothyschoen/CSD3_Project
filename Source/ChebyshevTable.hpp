@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PeakScaler.hpp"
+#include "SequenceLFO.hpp"
 
 inline static const int num_polynomials = 15;
 
@@ -18,12 +19,12 @@ class ChebyshevFactory : public dsp::LookupTableTransform<float>
     
 public:
     
-    static void deallocate();
+    static bool fillTables();
     
-    static std::array<dsp::LookupTableTransform<float>*, num_polynomials> fillTables(bool second_kind);
+    inline static std::array<dsp::LookupTableTransform<float>, num_polynomials> first_tables;
+    inline static std::array<dsp::LookupTableTransform<float>, num_polynomials> second_tables;
     
-    inline static std::array<dsp::LookupTableTransform<float>*, num_polynomials> first_tables = fillTables(false);
-    inline static std::array<dsp::LookupTableTransform<float>*, num_polynomials> second_tables = fillTables(true);
+    inline static bool initialised = fillTables();
     
     
 private:
@@ -46,42 +47,39 @@ public:
     float poly_order;
     float gain;
     
-    std::array<dsp::LookupTableTransform<float>*, num_polynomials>* current_table;
-    
-    dsp::LookupTableTransform<float>* table1 = nullptr;
-    dsp::LookupTableTransform<float>* table2 = nullptr;
+    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
         
-    dsp::StateVariableTPTFilter<float> svf;
-    
-    
-    std::unique_ptr<PeakScaler> scaler;
-    
     float shift;
     float g;
     
+    bool odd = true, even = true;
     
-    std::vector<float> sine_phase;
+    int num_channels;
+    
+    std::vector<SequenceLFO> lfos;
+    std::vector<float> lfo_states;
     
     float mod_freq = 2.0;
     float mod_depth = 0.25;
-    
+    int mod_shape = 0.0;
     
     ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind = false);
     
     void set_scaling(float amount);
-    float get_scaling();
     
-    dsp::AudioBlock<float> feedback;
-    HeapBlock<char> feedback_data;
+    void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output);
     
+    dsp::AudioBlock<float> buffer;
+    HeapBlock<char> buffer_data;
     
-    void process(dsp::AudioBlock<float> input, dsp::AudioBlock<float> output, int num_samples);
-    
-    void set_filter_type(int filterType);
-    void set_filter_cutoff(float cutoff);
-    void set_filter_resonance(float resonance);
+    void set_mod_depth(float depth);
+    void set_mod_rate(float rate);
+    void set_mod_shape(int shape_flag);
     
     void set_stereo(bool stereo);
+    
+    void set_even(bool enable_even);
+    void set_odd(bool enable_odd);
     
     void set_table(float order, float gain, bool second_kind = false);
 

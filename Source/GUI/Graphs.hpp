@@ -48,21 +48,50 @@ struct Graphs
         scalar_value += 1.0;
         
         
-        int start_point = margin;
+        
+        int start_point = margin * 1.25;
         int end_point = width - margin;
-        float sine_width = (width - (2.474 * margin));
+        float sine_width = (width - (2.584 * margin));
         float half_height = height / 2.0;
         
         Path shape;
         shape.startNewSubPath(0, half_height);
         shape.lineTo(start_point, half_height);
         
-        for(int x = start_point; x < end_point; x += 1) {
-            float phase = scalar_value * ((x - (float)start_point) / sine_width) * 2.0 * M_PI;
-            while(phase > M_PI) phase -= 2.0 * M_PI;
+        for(float x = start_point; x < end_point; x += 0.5) {
+            float phase = scalar_value * ((x - (float)start_point) / sine_width);
+            while(phase > 1.0f) phase -= 2.0f;
             
-            float y = dsp::FastMathApproximations::sin(phase);
+
+            float y;
+            // Sine
+            if(waveshape == 0.0f) {
+                y = dsp::FastMathApproximations::sin(phase * M_PI);
+            }
+            // Square
+            else if(waveshape == 1.0f) {
+                y = phase < 0 ? -1.0f : 1.0f;
+            }
+            // Triangle
+            else if(waveshape == 2.0f) {
+                y = (abs(phase) - (0.5)) * (2.0);
+            }
+            // Sawtooth
+            else {
+                y = phase;
+                
+            }
             
+            if(x < start_point + (margin * 0.25)) {
+                y = std::max(y, 0.0f);
+            }
+            
+
+            if(x > end_point - (margin * 0.25)) {
+                y = std::min(y, 0.0f);
+            }
+            
+            float amplitude = 0.6;
             
             // TODO: apply waveshaping
             //y = dsp::FastMathApproximations::tanh(y / scalar_value);
@@ -70,8 +99,8 @@ struct Graphs
             y += 1.0;
             y *= 0.5;
             
-            y *= 0.75;
-            y += (1.0 - 0.75) * 0.5;
+            y *= amplitude;
+            y += (1.0 - amplitude) * 0.5;
             
             
             

@@ -24,9 +24,13 @@ void PeakScaler::set_gain(float gain_amount) {
 }
 
 
-void PeakScaler::get_scaling(dsp::AudioBlock<float> input, dsp::AudioBlock<float> output){
+void PeakScaler::get_scaling(const dsp::AudioBlock<float>& input, dsp::AudioBlock<float>& output){
    
-   float scaled_gain = exp(-1.0 / (gain * 50)) + 0.01980132669;
+   float heavy_scalar = heavy ? 1e4 : 75.0f;
+   float scaled_gain = dsp::FastMathApproximations::exp(-1.0 / (gain * heavy_scalar)) + (1.0 - dsp::FastMathApproximations::exp(-1.0 / heavy_scalar));
+   scaled_gain -= heavy ? 0.0f : 0.002f;
+   
+   if(!std::isfinite(scaled_gain)) scaled_gain = 0.0f;
    
    for(int ch = 0; ch < input.getNumChannels(); ch++) {
       std::vector<float> real(input.getNumSamples());
@@ -46,7 +50,11 @@ void PeakScaler::get_scaling(dsp::AudioBlock<float> input, dsp::AudioBlock<float
    output.copyFrom(inv_values);
 }
 
-void PeakScaler::get_inverse(dsp::AudioBlock<float> output)
+void PeakScaler::set_heavy(bool is_heavy) {
+   heavy = is_heavy;
+}
+
+void PeakScaler::get_inverse(dsp::AudioBlock<float>& output)
 {
    output.copyFrom(max_values);
 }

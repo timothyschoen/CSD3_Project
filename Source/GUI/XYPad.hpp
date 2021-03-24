@@ -15,6 +15,7 @@
 struct XYPad : public Component, public ValueTree::Listener
 {
     
+    
     Component pad;
     ValueTree pad_tree = ValueTree("XYPad");
     
@@ -29,6 +30,10 @@ struct XYPad : public Component, public ValueTree::Listener
     void set_selection(XYSlider* slider);
     
     void valueTreeChildRemoved (ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) override;
+    
+    void valueTreeRedirected (ValueTree& treeWhichHasBeenChanged) override;
+
+    void update_tree(ValueTree tree);
     
     XYSlider* get_selection();
     

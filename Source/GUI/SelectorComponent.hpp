@@ -87,7 +87,7 @@ struct SelectorButton : public TextButton
 };
     
 
-struct SelectorComponent : public Component
+struct SelectorComponent : public Component, private Value::Listener
 {
     
     std::function<void(int)> callback = [](int){};
@@ -98,6 +98,8 @@ struct SelectorComponent : public Component
     
     SelectorComponent(StringArray titles) {
         int num_options = titles.size();
+        
+        current_selection.addListener(this);
         
         if(num_options > 1) {
             for(int i = 0; i < num_options; i++) {
@@ -132,6 +134,15 @@ struct SelectorComponent : public Component
         return current_selection;
     }
     
+    void valueChanged(Value& value) override {
+        if(buttons.size() > 1) {
+            buttons[(int)value.getValue()]->setToggleState(true, dontSendNotification);
+        }
+        else {
+            buttons[0]->setToggleState((bool)value.getValue(), dontSendNotification);
+        }
+    }
+    
     void resized() override {
         
         int num_items = buttons.size();
@@ -140,7 +151,89 @@ struct SelectorComponent : public Component
         
         for(int i = 0; i < num_items; i++) {
             
-            buttons[i]->setBounds(i * width, 0, width + (num_items != 1), height);
+            buttons[i]->setBounds(i * width, 0, width + (num_items != (i+1)), height);
+        }
+    }
+    
+    void set_custom_draw(std::function<void(int, Graphics&, SelectorButton&)> draw_callback) {
+        for(int i = 0; i < buttons.size(); i++) {
+            buttons[i]->has_custom_draw = true;
+            buttons[i]->draw_function = [this, i, draw_callback](Graphics& g, SelectorButton& button) mutable {
+                draw_callback(i, g, button);
+                
+            };
+        }
+    }
+    
+    void set_colour(int new_colour) {
+        for(auto& button : buttons) {
+            button->setColour(TextButton::buttonOnColourId, ColourTheme::highlights[new_colour]);
+        }
+    }
+    
+    
+};
+
+
+struct MultipleSelectorComponent : public Component, private Value::Listener
+{
+    
+    std::function<void(std::vector<int>)> callback = [](std::vector<int>){};
+    
+    OwnedArray<SelectorButton> buttons;
+    
+    Value current_selection;
+    
+    std::vector<int> state;
+    
+    MultipleSelectorComponent(StringArray titles) {
+        int num_options = titles.size();
+        state.resize(num_options, 0.0);
+        
+        current_selection.addListener(this);
+        
+        for(int i = 0; i < num_options; i++) {
+            auto* button = buttons.add(new SelectorButton(titles[i]));
+            button->setConnectedEdges(3);
+            button->setClickingTogglesState(true);
+            button->onClick = [this, i, button]() mutable {
+                int binary_state = 0;
+                for(int j = 0; j < state.size(); j++) {
+                    state[j] = buttons[j]->getToggleState();
+                    binary_state |= state[j] * (1<<j);
+                }
+                current_selection.setValue(binary_state);
+                callback(state);
+            };
+            addAndMakeVisible(button);
+        }
+        
+        if(num_options > 1) {
+            buttons.getFirst()->setConnectedEdges(2);
+            buttons.getLast()->setConnectedEdges(1);
+        }
+    }
+    
+    Value& getValueObject() {
+        return current_selection;
+    }
+    
+    void valueChanged(Value& value) override {
+        int flag = (int)value.getValue();
+        for(int i = 0; i < state.size(); i++) {
+            state[i] = flag & (1<<i);
+            buttons[i]->setToggleState(state[i], dontSendNotification);
+        }
+    }
+
+    void resized() override {
+        
+        int num_items = buttons.size();
+        int width = getWidth() / num_items;
+        int height = getHeight();
+        
+        for(int i = 0; i < num_items; i++) {
+            buttons[i]->setBounds(i * width, 0, width + (num_items != (i+1)), height);
         }
     }
     

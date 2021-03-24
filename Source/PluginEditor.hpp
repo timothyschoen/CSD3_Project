@@ -23,20 +23,21 @@ public:
     ~Distortion_ModellerAudioProcessorEditor() override;
 
     
-    Value num_filters;
-    Value smooth_mode;
+    Value num_filters, smooth_mode, heavy_mode;
+
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
 
     ValueTree main_tree;
+    XYPad xy_pad;
     
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Distortion_ModellerAudioProcessor& audioProcessor;
     
-    XYPad xy_pad;
+    
     
     AnimatedSlider gain_slider, tone_slider, volume_slider, saturation_slider;
     
@@ -44,6 +45,7 @@ private:
     SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});
 
     SelectorComponent smooth_button = SelectorComponent({"Smooth"});
+    SelectorComponent heavy_button = SelectorComponent({"Heavy"});
 
     Dark_LookAndFeel lnf;
     

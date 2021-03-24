@@ -14,6 +14,7 @@ struct PeakScaler
 {
     float gain = 1.0;
     float sample_rate;
+    bool heavy = false;
     
     std::vector<Hilbert> hilbert;
     
@@ -23,7 +24,8 @@ struct PeakScaler
     PeakScaler(const dsp::ProcessSpec& spec, int oversample_factor);
 
     void set_gain(float gain_amount);
+    void set_heavy(bool is_heavy);
     
-    void get_scaling(dsp::AudioBlock<float> input, dsp::AudioBlock<float> output);
-    void get_inverse(dsp::AudioBlock<float> output);
+    void get_scaling(const dsp::AudioBlock<float>& input, dsp::AudioBlock<float>& output);
+    void get_inverse(dsp::AudioBlock<float>& output);
 };

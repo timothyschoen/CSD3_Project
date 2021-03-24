@@ -120,7 +120,7 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
 }
 
 //////////////////////////////////////////////
-float GammatoneFilter::GetCenterFrequency()
+float GammatoneFilter::get_centre_freq()
 {
     return f0;
 }

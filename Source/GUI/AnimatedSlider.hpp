@@ -28,12 +28,12 @@ struct AnimatedSlider : public Slider
         Colour bg_colour = findColour(Slider::backgroundColourId);
         
         if(isHorizontal()) {
-            //g.setColour(track_colour);
+
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
-            g.fillRect(Rectangle<float>(0.0, 0.0, position, height));
+            g.fillRoundedRectangle(Rectangle<float>(0.0, 0.0, position, height), 3.0f);
             
-            g.setColour(bg_colour);
-            g.fillRect(Rectangle<float>(position, 0.0, width - position, height));
+            g.setGradientFill(ColourTheme::add_shadow(bg_colour, height));
+            g.fillRoundedRectangle(Rectangle<float>(position, 0.0, width - position, height), 3.0f);
             
             Rectangle<float> bounds = {position - (thumb_width / 2.0f), 0.0f, thumb_width, height};
             
@@ -51,10 +51,10 @@ struct AnimatedSlider : public Slider
             //g.setColour(track_colour);
             
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
-            g.fillRect(Rectangle<float>(0.0, 0.0, width, position));
+            g.fillRoundedRectangle(Rectangle<float>(0.0, 0.0, width, position), 3.0f);
                         
-            g.setColour(bg_colour);
-            g.fillRect(Rectangle<float>(0.0, position, width, height - position));
+            g.setGradientFill(ColourTheme::add_shadow(bg_colour, height));
+            g.fillRoundedRectangle(Rectangle<float>(0.0, position, width, height - position), 3.0f);
             
             Rectangle<float> bounds = {0.0f, position - (thumb_width / 2.0f), width, thumb_width};
             

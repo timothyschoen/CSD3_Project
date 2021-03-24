@@ -31,17 +31,15 @@ void XYSlider::init_valuetree()
         slider_tree.setProperty("Y", position_values.second, nullptr);
         slider_tree.setProperty("Enabled", true, nullptr);
         slider_tree.setProperty("Kind", 0, nullptr);
-        slider_tree.setProperty("FilterType", 0, nullptr);
+        slider_tree.setProperty("Even", 0, nullptr);
+        slider_tree.setProperty("ModShape", 0, nullptr);
         slider_tree.setProperty("ModDepth", 0.1, nullptr);
         slider_tree.setProperty("ModRate", 5.0, nullptr);
         slider_tree.setProperty("Clarity", 1.0, nullptr);
-        slider_tree.addListener(this);
+        
     }
-    else
-    {
-        slider_tree.addListener(this);
-    }
-
+    
+    slider_tree.addListener(this);
 }
 
 void XYSlider::valueTreePropertyChanged (ValueTree &treeWhosePropertyHasChanged, const Identifier &property)

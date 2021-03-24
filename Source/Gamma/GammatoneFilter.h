@@ -15,7 +15,7 @@ public:
     
     void process(const float* inBuffer, float* outBuffer, int num_samples);
     
-    float GetCenterFrequency();
+    float get_centre_freq();
     
     
 private:

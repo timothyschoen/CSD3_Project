@@ -13,17 +13,16 @@ public:
     
     ~GammatoneFilterBank();
     
-    unsigned InitWithFreqRangeOverlap(float _lowFreq, float _highFreq, float _overlap);
+    int init_with_overlap(float low_freq, float high_freq, float overlap);
+    float init_with_num_filters(float low_freq, float high_freq, unsigned n_filters);
     
-    float InitWithFreqRangeNumFilters(float _lowFreq, float _highFreq, unsigned _numFilters);
-    
-    void AddFilter(unsigned _order, float _freq, float _erb);
+    void add_filter(unsigned _order, float _freq, float _erb);
 
-    void RemoveFilters();
+    void remove_filters();
 
-    int GetNumFilters();
+    int get_num_filters();
     
-    void process(dsp::AudioBlock<float> inBuffer, std::vector<dsp::AudioBlock<float>> outBuffer);
+    void process(dsp::AudioBlock<float> in_buffer, std::vector<dsp::AudioBlock<float>> out_buffer);
     
     std::vector<std::vector<GammatoneFilter*>> filters;            // Hold the filters in the Bank.
 private:

@@ -35,6 +35,7 @@ XYPad::XYPad(ValueTree parent_tree)
     
     pad.setInterceptsMouseClicks(false, true);
     pad.addAndMakeVisible(new_slider);
+    
     addAndMakeVisible(pad);
     addAndMakeVisible(inspector);
     
@@ -64,7 +65,9 @@ void XYPad::paint(Graphics& g)
     int line_spacing = pad.getWidth() / num_lines;
     
     for(int i = 0; i < num_lines; i++) {
-        g.setColour(i % 2 ? Colours::white.withAlpha((float)0.6) : Colours::white.withAlpha((float)0.3));
+        //if((!even && (i & 1)) || (!odd && !(i & 1))) continue;
+        
+        g.setColour((i & 1) ? Colours::white.withAlpha((float)0.6) : Colours::white.withAlpha((float)0.3));
         g.drawLine(i * line_spacing, 0, i * line_spacing, getHeight());
     }
 }
@@ -77,10 +80,50 @@ void XYPad::set_selection(XYSlider* slider)
     
 }
 
+
 void XYPad::valueTreeChildRemoved (ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) {
     inspector.set_selection(nullptr);
     sliders.remove(indexFromWhichChildWasRemoved);
     
+}
+
+void XYPad::update_tree(ValueTree tree) {
+    
+    sliders.clear();
+    
+    pad_tree = tree;
+    pad_tree.addListener(this);
+    
+
+    
+    for(auto child : pad_tree) {
+        auto* slider = sliders.add(new XYSlider(child));
+        
+        XYPad* xy_pad = this;
+        slider->onClick = [this, slider, xy_pad]() mutable {
+            xy_pad->set_selection(slider);
+        };
+        
+        pad.addAndMakeVisible(slider);
+        
+        slider->init_valuetree();
+        
+        child.sendPropertyChangeMessage("X");
+        child.sendPropertyChangeMessage("Y");
+        child.sendPropertyChangeMessage("Kind");
+        child.sendPropertyChangeMessage("Even");
+        child.sendPropertyChangeMessage("Clarity");
+        child.sendPropertyChangeMessage("ModRate");
+        child.sendPropertyChangeMessage("ModDepth");
+        child.sendPropertyChangeMessage("ModShape");
+        child.sendPropertyChangeMessage("Enabled");
+
+        
+    }
+}
+
+void XYPad::valueTreeRedirected (ValueTree& treeWhichHasBeenChanged) {
+    std::cout << "check" << std::endl;
 }
 
 XYSlider* XYPad::get_selection()

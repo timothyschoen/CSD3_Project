@@ -13,10 +13,9 @@
 Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor (Distortion_ModellerAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p), main_tree(p.main_tree), xy_pad(main_tree)
 {
-    
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (600, 290);
+    setSize (600, 345);
     
     setLookAndFeel(&lnf);
 
@@ -27,6 +26,7 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     addAndMakeVisible(saturation_slider);
     
     addAndMakeVisible(smooth_button);
+    addAndMakeVisible(heavy_button);
     
     addAndMakeVisible(xy_pad);
     
@@ -35,7 +35,8 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     volume_slider.setRange(0.0, 1.0);
     saturation_slider.setRange(0.0, 1.0);
     
-    saturation_slider.setSkewFactor(2.0);
+    saturation_slider.setSkewFactor(0.25);
+    tone_slider.setSkewFactor(0.3);
     
     saturation_slider.set_colour(1);
     tone_slider.set_colour(1);
@@ -100,33 +101,31 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     addAndMakeVisible(quality_selector);
     
 
+
     
-    main_tree.setProperty("Intermodulation", 0.1, nullptr);
-    main_tree.setProperty("Tone", 1.0, nullptr);
-    main_tree.setProperty("Gain", 1.0, nullptr);
-    main_tree.setProperty("Volume", 1.0, nullptr);
-    main_tree.setProperty("Saturation", 0.5, nullptr);
-    main_tree.setProperty("Smooth", false, nullptr);
+    nfilter_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
+    smooth_button.getValueObject().referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
+    heavy_button.getValueObject().referTo(main_tree.getPropertyAsValue("Heavy", nullptr));
+    quality_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Quality", nullptr));
     
-    num_filters.referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
-    smooth_mode.referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
     
     tone_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Tone", nullptr));
     gain_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Gain", nullptr));
     volume_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Volume", nullptr));
     saturation_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Saturation", nullptr));
     
+    xy_pad.update_tree(main_tree.getChildWithName("XYPad"));
    
     nfilter_selector.set_custom_draw(SelectorButton::paint_filters);
-    
-    nfilter_selector.callback = [this](int selection){
-        float options[3] = {-0.8, 0.0, 0.3};
-        num_filters.setValue(options[selection]);
-    };
     
     smooth_button.callback = [this](int selection){
         smooth_mode.setValue(selection);
     };
+    
+    heavy_button.callback = [this](int selection){
+        heavy_mode.setValue(selection);
+    };
+    
     
     
     quality_selector.callback = [this](int selection){
@@ -136,6 +135,7 @@ Distortion_ModellerAudioProcessorEditor::Distortion_ModellerAudioProcessorEditor
     nfilter_selector.set_colour(0);
     quality_selector.set_colour(0);
     smooth_button.set_colour(4);
+    heavy_button.set_colour(4);
     
 }
 
@@ -152,16 +152,17 @@ void Distortion_ModellerAudioProcessorEditor::paint (juce::Graphics& g)
 
 void Distortion_ModellerAudioProcessorEditor::resized()
 {
-    nfilter_selector.setBounds(20, 215, 80, 24);
-    quality_selector.setBounds(20, 250, 80, 24);
+    nfilter_selector.setBounds(20, 270, 80, 24);
+    quality_selector.setBounds(20, 305, 80, 24);
     
-    saturation_slider.setBounds(120, 215, 150, 24);
-    tone_slider.setBounds(120, 250, 150, 24);
+    saturation_slider.setBounds(120, 270, 170, 24);
+    tone_slider.setBounds(120, 305, 170, 24);
     
-    gain_slider.setBounds(300, 215, 150, 24);
-    volume_slider.setBounds(300, 250, 150, 24);
+    gain_slider.setBounds(315, 270, 170, 24);
+    volume_slider.setBounds(315, 305, 170, 24);
     
-    smooth_button.setBounds(getWidth() - 100, 215, 68, 24);
+    smooth_button.setBounds(getWidth() - 90, 270, 72, 24);
+    heavy_button.setBounds(getWidth() - 90, 305, 72, 24);
     
-    xy_pad.setBounds(0, 0, 600, 200);
+    xy_pad.setBounds(0, 0, 600, 255);
 }

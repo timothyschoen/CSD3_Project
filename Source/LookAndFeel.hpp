@@ -9,7 +9,7 @@ struct ColourTheme
     inline static Colour bg_lighter = Colour(46, 46, 57);
     
     static ColourGradient add_shadow(Colour base, float height) {
-        return ColourGradient(base, 0.0f, 0.0f, base.darker(0.15), 0.0f, height, false);
+        return ColourGradient(base, 0.0f, 0.0f, base.darker(0.3), 0.0f, height, false);
         
     }
 

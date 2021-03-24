@@ -13,8 +13,6 @@
 
 struct XYInspector : public Component
 {
-
-    
     XYInspector();
     
     void resized() override;
@@ -35,13 +33,12 @@ struct XYInspector : public Component
     TextButton delete_slider = TextButton("x");
     
     SelectorComponent kind_select = SelectorComponent({"I", "II"});
-    SelectorComponent filter_select = SelectorComponent({"LP", "BP", "HP"});
+    MultipleSelectorComponent shape_select = MultipleSelectorComponent({"SIN", "TRI", "SQR", "SAW", });
+    
+    MultipleSelectorComponent mod_settings = MultipleSelectorComponent({"SYNC", "STEREO"});
+    MultipleSelectorComponent even_selector = MultipleSelectorComponent({"EVEN", "ODD"});
     
     TextButton enabled_button = TextButton("E");
     
     Component settings;
-    
-    Value filter_selection;
-    Value kind_selection;
-    
 };
