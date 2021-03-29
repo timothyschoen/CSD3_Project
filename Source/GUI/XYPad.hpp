@@ -1,6 +1,6 @@
 //
 //  XYPad.hpp
-//  Distortion_Modeller - Shared Code
+//  Zircon
 //
 //  Created by Tim Schoen on 18/02/2021.
 //

@@ -12,15 +12,15 @@
 #include "PluginProcessor.hpp"
 #include "GUI/XYPad.hpp"
 #include "GUI/AnimatedSlider.hpp"
-#include "LookAndFeel.hpp"
+#include "GUI/LookAndFeel.hpp"
 //==============================================================================
 /**
 */
-class Distortion_ModellerAudioProcessorEditor  : public juce::AudioProcessorEditor
+class ZirconAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    Distortion_ModellerAudioProcessorEditor (Distortion_ModellerAudioProcessor&);
-    ~Distortion_ModellerAudioProcessorEditor() override;
+    ZirconAudioProcessorEditor (ZirconAudioProcessor&);
+    ~ZirconAudioProcessorEditor() override;
 
     
     Value num_filters, smooth_mode, heavy_mode;
@@ -28,6 +28,8 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    
+    TooltipWindow tooltipWindow { this, 800 };
 
     ValueTree main_tree;
     XYPad xy_pad;
@@ -35,7 +37,7 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    Distortion_ModellerAudioProcessor& audioProcessor;
+    ZirconAudioProcessor& audioProcessor;
     
     
     
@@ -49,5 +51,5 @@ private:
 
     Dark_LookAndFeel lnf;
     
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Distortion_ModellerAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ZirconAudioProcessorEditor)
 };

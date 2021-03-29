@@ -50,7 +50,7 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     temp_buffer_imag = new float[order]();
     
     an = an_table[filter_order];
-    cn = 2.0 * sqrt(pow(2, 1.0/(double)filter_order) - 1.0);
+    cn = 2.0f * sqrt(pow(2, 1.0/(double)filter_order) - 1.0f);
     
     
     f0 = center_freq;
@@ -61,13 +61,13 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     sin_phase_increment = sin(phase_increment);
     
     b = band_width / an;
-    eq_constant = 1.0 - exp(-M_TWO_PI * b / sample_rate);
+    eq_constant = 1.0f - exp(-M_TWO_PI * b / sample_rate);
     
-    cos_phase.resize(block_size, 0.0);
-    sin_phase.resize(block_size, 0.0);
-    negated_sin.resize(block_size, 0.0);
-    z_real.resize(block_size, 0.0);
-    z_imag.resize(block_size, 0.0);
+    cos_phase.resize(block_size, 0.0f);
+    sin_phase.resize(block_size, 0.0f);
+    negated_sin.resize(block_size, 0.0f);
+    z_real.resize(block_size, 0.0f);
+    z_imag.resize(block_size, 0.0f);
     
 }
 
@@ -95,9 +95,8 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
         sin_phase[k] = cos_phase_increment * old_sin_phase - sin_phase_increment * old_cos_phase;
     }
     
-    last_cos = cos_phase.back();
-    last_sin = sin_phase.back();
-    
+    last_cos = cos_phase[num_samples - 1];
+    last_sin = sin_phase[num_samples - 1];
     
     FloatVectorOperations::negate(sin_phase.data(), sin_phase.data(), num_samples);
     

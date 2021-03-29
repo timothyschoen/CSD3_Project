@@ -30,7 +30,7 @@ public:
         std::random_device rnd_device;
         // Specify the engine and distribution.
         std::mt19937 mersenne_engine {rnd_device()};
-        std::uniform_real_distribution<float> dist {-1.0, 1.0};
+        std::uniform_real_distribution<float> dist {-1.0f, 1.0};
 
         auto gen = [&dist, &mersenne_engine](){
                        return dist(mersenne_engine);
@@ -122,7 +122,7 @@ private:
  {
  public:
      Hilbert() {
-         for(int i = 0; i < 33; i++)  s[i] = SIMD(0.0);
+         for(int i = 0; i < 33; i++)  s[i] = SIMD(0.0f);
 
          adidx = 0;
          GetAntiDenormalTable(adtab,16);
@@ -134,7 +134,7 @@ private:
          std::random_device rnd_device;
          // Specify the engine and distribution.
          std::mt19937 mersenne_engine {rnd_device()};
-         std::uniform_real_distribution<float> dist {-1.0, 1.0};
+         std::uniform_real_distribution<float> dist {-1.0f, 1.0};
 
          auto gen = [&dist, &mersenne_engine](){
                         return dist(mersenne_engine);

@@ -11,7 +11,7 @@
 
 
 //==============================================================================
-Distortion_ModellerAudioProcessor::Distortion_ModellerAudioProcessor()
+ZirconAudioProcessor::ZirconAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
 : AudioProcessor (BusesProperties()
 #if ! JucePlugin_IsMidiEffect
@@ -20,44 +20,93 @@ Distortion_ModellerAudioProcessor::Distortion_ModellerAudioProcessor()
 #endif
                   .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-                  )
+                  ), proc_valuetree(*this, nullptr, Identifier("Main"), createParameterLayout())
 #endif
 {
    
-   
+   // Add listeners
+   for(auto child : proc_valuetree.state) {
+      proc_valuetree.addParameterListener(child.getProperty("id").toString(), this);
+   }
    main_tree.addListener(this);
    
-   main_tree.setProperty("Intermodulation", 0, nullptr);
-   main_tree.setProperty("Tone", 1.0, nullptr);
-   main_tree.setProperty("Gain", 1.0, nullptr);
-   main_tree.setProperty("Volume", 1.0, nullptr);
-   main_tree.setProperty("Saturation", 0.5, nullptr);
-   main_tree.setProperty("Smooth", false, nullptr);
-   main_tree.setProperty("Heavy", false, nullptr);
-   main_tree.setProperty("Quality", 1, nullptr);
-   // init valuetree and parameters here!!
+   
+
+   
+   /*
+   proc_valuetree.getParameterAsValue("intermod").referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
+   proc_valuetree.getParameterAsValue("tone").referTo(main_tree.getPropertyAsValue("Tone", nullptr));
+   proc_valuetree.getParameterAsValue("gain").referTo(main_tree.getPropertyAsValue("Gain", nullptr));
+   proc_valuetree.getParameterAsValue("vol").referTo(main_tree.getPropertyAsValue("Volume", nullptr));
+   proc_valuetree.getParameterAsValue("sat").referTo(main_tree.getPropertyAsValue("Saturation", nullptr));
+   proc_valuetree.getParameterAsValue("smooth").referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
+   proc_valuetree.getParameterAsValue("heavy").referTo(main_tree.getPropertyAsValue("Heavy", nullptr));
+   proc_valuetree.getParameterAsValue("quality").referTo(main_tree.getPropertyAsValue("Quality", nullptr)); */
    
    // Reserve space to prevent memory allocations later on
    peak_scalers.ensureStorageAllocated(max_bands);
    chebyshev_distortions.ensureStorageAllocated(max_voices);
    noise_filters.reserve(max_bands);
-   
-   skipped_bands.reserve(max_bands);
+   read_bands.reserve(max_bands);
    
 }
 
-Distortion_ModellerAudioProcessor::~Distortion_ModellerAudioProcessor()
+ZirconAudioProcessor::~ZirconAudioProcessor()
 {
    //ChebyshevFactory::deallocate();
 }
 
+
+AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParameterLayout()
+{
+    AudioProcessorValueTreeState::ParameterLayout layout;
+ 
+
+   
+   // First initialise our own value tree
+   main_tree.setProperty("Intermodulation", 0, nullptr);
+   main_tree.setProperty("Tone", 1.0f, nullptr);
+   main_tree.setProperty("Gain", 1.0f, nullptr);
+   main_tree.setProperty("Volume", 1.0f, nullptr);
+   main_tree.setProperty("Saturation", 0.5f, nullptr);
+   main_tree.setProperty("Smooth", false, nullptr);
+   main_tree.setProperty("Heavy", false, nullptr);
+   main_tree.setProperty("Quality", 1, nullptr);
+   
+   // Then initialise audio processor value tree
+   layout.add (std::make_unique<AudioParameterFloat> ("Tone", "Tone", 0.0f, 1.0f, 1.0f));
+   layout.add (std::make_unique<AudioParameterFloat> ("Gain", "Gain", 0.0f, 1.0f, 0.5f));
+   layout.add (std::make_unique<AudioParameterFloat> ("Volume", "Volume", 0.0f, 1.0f, 0.5f));
+   layout.add (std::make_unique<AudioParameterFloat> ("Saturation", "Saturation", 0.0f, 1.0f, 0.5f));
+   layout.add (std::make_unique<AudioParameterBool> ("Smooth", "Smooth", false));
+   layout.add (std::make_unique<AudioParameterBool> ("Heavy", "Heavy", false));
+   
+   // Don't add Intermodulation and Quality as automatable parameters: these are clicky parameters that shouldn't be changed during playback
+   
+   int max_polynomials = 5;
+   
+   for(int p = 0; p < max_polynomials; p++) {
+      String ID = "XYSlider" + String(p + 1) + ": ";
+
+      layout.add (std::make_unique<AudioParameterFloat> (ID + "Shape", ID + "Shape", 0, 1, 0.5f));
+      layout.add (std::make_unique<AudioParameterBool> (ID + "Kind", ID + "Kind", 0));
+      layout.add (std::make_unique<AudioParameterInt> (ID + "Even", ID + "Even", 0, 3, 3));
+      layout.add (std::make_unique<AudioParameterInt> (ID + "ModShape", ID + "ModShape", 0, 15, 0));
+      layout.add (std::make_unique<AudioParameterFloat> (ID + "ModDepth", ID + "ModDepth", 0, 1, 1.0f));
+      layout.add (std::make_unique<AudioParameterFloat> (ID + "ModRate", ID + "ModRate", 1, 8, 1.0f));
+      layout.add (std::make_unique<AudioParameterInt> (ID + "ModSettings", ID + "ModSettings", 0, 3, 0));
+   }
+ 
+    return layout;
+}
+
 //==============================================================================
-const juce::String Distortion_ModellerAudioProcessor::getName() const
+const juce::String ZirconAudioProcessor::getName() const
 {
    return JucePlugin_Name;
 }
 
-bool Distortion_ModellerAudioProcessor::acceptsMidi() const
+bool ZirconAudioProcessor::acceptsMidi() const
 {
 #if JucePlugin_WantsMidiInput
    return true;
@@ -66,7 +115,7 @@ bool Distortion_ModellerAudioProcessor::acceptsMidi() const
 #endif
 }
 
-bool Distortion_ModellerAudioProcessor::producesMidi() const
+bool ZirconAudioProcessor::producesMidi() const
 {
 #if JucePlugin_ProducesMidiOutput
    return true;
@@ -75,7 +124,7 @@ bool Distortion_ModellerAudioProcessor::producesMidi() const
 #endif
 }
 
-bool Distortion_ModellerAudioProcessor::isMidiEffect() const
+bool ZirconAudioProcessor::isMidiEffect() const
 {
 #if JucePlugin_IsMidiEffect
    return true;
@@ -84,65 +133,90 @@ bool Distortion_ModellerAudioProcessor::isMidiEffect() const
 #endif
 }
 
-double Distortion_ModellerAudioProcessor::getTailLengthSeconds() const
+double ZirconAudioProcessor::getTailLengthSeconds() const
 {
    return 0.0;
 }
 
-int Distortion_ModellerAudioProcessor::getNumPrograms()
+int ZirconAudioProcessor::getNumPrograms()
 {
    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
    // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int Distortion_ModellerAudioProcessor::getCurrentProgram()
+int ZirconAudioProcessor::getCurrentProgram()
 {
    return 0;
 }
 
-void Distortion_ModellerAudioProcessor::setCurrentProgram (int index)
+void ZirconAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String Distortion_ModellerAudioProcessor::getProgramName (int index)
+const juce::String ZirconAudioProcessor::getProgramName (int index)
 {
    return {};
 }
 
-void Distortion_ModellerAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void ZirconAudioProcessor::changeProgramName (int index, const juce::String& new_name)
 {
 }
 
-void Distortion_ModellerAudioProcessor::update_bands(float freq_range_overlap, bool reset)
+void ZirconAudioProcessor::update_bands(int freq_range_overlap, bool reset)
 {
+   if(reset)  {
+      peak_scalers.clear();
+      noise_filters.clear();
+   }
    
-   int old_num_bands = reset ? 0 : filter_bank->get_num_filters() - 1;
-   num_bands = filter_bank->init_with_overlap(20, sample_rate / 2.0, freq_range_overlap - 0.9);
+
+   int old_num_bands = reset ? 0 : num_bands;
+   
+   freq_range_overlap += 1;
+   
+   if(freq_range_overlap == 1) {
+      // Use reson bands
+      
+      filter_bank.reset(new ResonBands(oversampled_spec));
+      
+      num_bands = 12;
+      static_cast<ResonBands*>(filter_bank.get())->create_bands(num_bands, {50.0f, 10000.0f});
+      
+   }
+   else {
+      // use gammatone bands
+      filter_bank.reset(new GammatoneFilterBank(oversampled_spec));
+      const float num_options[2] = {-0.8, 0.0};
+      num_bands = static_cast<GammatoneFilterBank*>(filter_bank.get())->init_with_overlap(20, sample_rate / 2.0f, num_options[freq_range_overlap - 2]);
+   }
+   
    
    int num_channels = getTotalNumInputChannels();
    
    dsp::ProcessSpec spec = {sample_rate * oversample_factor, (juce::uint32)block_size * oversample_factor, (juce::uint32)getTotalNumInputChannels()};
+   
    
    if(old_num_bands > num_bands) {
       peak_scalers.removeLast(old_num_bands - num_bands);
    }
    else if(old_num_bands < num_bands || reset) {
       for(int b = old_num_bands; b < num_bands; b++) {
-         auto* scaler = peak_scalers.add(new PeakScaler(spec, oversample_factor));
-         scaler->set_gain(peak_scalers[0]->gain);
-         scaler->heavy = peak_scalers[0]->heavy;
+         auto* scaler = peak_scalers.add(new PeakScaler(oversampled_spec, oversample_factor));
+         scaler->set_gain((float)main_tree.getProperty("Gain"));
+         scaler->heavy = heavy_mode;
       }
    }
    
    noise_filters.resize(num_bands);
    
    for(int b = 0; b < num_bands; b++) {
-      float centre_freq = filter_bank->filters[0][b]->get_centre_freq();
+      float centre_freq = filter_bank->get_centre_freq(b);
+      centre_freq = std::min<float>(centre_freq, sample_rate / 2 - 1);
       noise_filters[b].reset();
       noise_filters[b].prepare(spec);
       noise_filters[b].setType(smooth_mode ? dsp::StateVariableTPTFilterType::bandpass : dsp::StateVariableTPTFilterType::highpass);
-      noise_filters[b].setCutoffFrequency(smooth_mode ? centre_freq : (centre_freq * (2.0 / 3.0)));
-      noise_filters[b].setResonance(1.0 / sqrt(2));
+      noise_filters[b].setCutoffFrequency(smooth_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+      noise_filters[b].setResonance(1.0f / sqrt(2));
    }
    
    
@@ -172,42 +246,79 @@ void Distortion_ModellerAudioProcessor::update_bands(float freq_range_overlap, b
       
       inv_scaling[i] = dsp::AudioBlock<float>(inv_data[i], num_channels, block_size * oversample_factor);
       
-      split_bands[i].fill(0.0);
-      instant_amp[i].fill(0.0);
-      write_bands[i].fill(0.0);
-      inv_scaling[i].fill(0.0);
+      split_bands[i].fill(0.0f);
+      instant_amp[i].fill(0.0f);
+      write_bands[i].fill(0.0f);
+      inv_scaling[i].fill(0.0f);
       
    }
-      
+    
 }
 
+void ZirconAudioProcessor::parameterChanged (const String &parameter_id, float new_value) {
+    if(parameter_id.startsWith("XYSlider")) {
+        String param_name = parameter_id.fromFirstOccurrenceOf("XYSlider", false, false);
+        int idx = param_name.substring(0, 1).getIntValue() - 1;
+        param_name = param_name.substring(3);
+        
+        auto pad_tree = main_tree.getChildWithName("XYPad");
+        
+        // Don't change parameters on non-existent sliders
+        if (idx >= pad_tree.getNumChildren()) return;
+        
+        auto slider_tree = main_tree.getChildWithName("XYPad").getChild(idx);
+        slider_tree.setProperty(param_name, new_value, nullptr);
+    }
+    else {
+        main_tree.setProperty(parameter_id, new_value, nullptr);
+    }
+}
+
+
 //==============================================================================
-void Distortion_ModellerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void ZirconAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
    block_size = samplesPerBlock;
    sample_rate = sampleRate;
-   int num_channels = getTotalNumInputChannels();
    
-   oversampler.reset(new dsp::Oversampling<float>(num_channels, std::log2(oversample_factor), dsp::Oversampling<float>::filterHalfBandFIREquiripple));
+   last_spec = {sample_rate, (juce::uint32)block_size, (juce::uint32)getTotalNumInputChannels()};
    
-   float oversampled_rate = sample_rate * oversample_factor;
-   
-   filter_bank.reset(new GammatoneFilterBank(oversampled_rate, samplesPerBlock * oversample_factor, num_channels));
-   
-   oversampler->initProcessing(samplesPerBlock);
-   
-   update_bands(-0.8, true);
+
+   set_oversample_rate(1 << (int)main_tree.getProperty("Quality"));
    
 }
 
-void Distortion_ModellerAudioProcessor::releaseResources()
+void ZirconAudioProcessor::set_oversample_rate(int new_oversample_factor)
+{
+   int num_channels = getTotalNumInputChannels();
+   oversample_factor = new_oversample_factor;
+   
+   oversampler.reset(new dsp::Oversampling<float>(num_channels, std::log2(oversample_factor), dsp::Oversampling<float>::filterHalfBandFIREquiripple));
+      
+   oversampled_spec = {sample_rate * oversample_factor, (juce::uint32)block_size * oversample_factor, (juce::uint32)num_channels};
+
+   
+   oversampler->initProcessing(block_size);
+   
+   for(int i = 0; i < chebyshev_distortions.size(); i++) {
+
+      auto state = chebyshev_distortions[i]->get_state();
+      
+      chebyshev_distortions.set(i, new ChebyshevTable(oversampled_spec, 1, 1, false));
+      chebyshev_distortions[i]->set_state(state);
+   }
+   
+   update_bands((int)main_tree.getProperty("Intermodulation"), true);
+   
+}
+void ZirconAudioProcessor::releaseResources()
 {
    // When playback stops, you can use this as an opportunity to free up any
    // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool Distortion_ModellerAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool ZirconAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
 #if JucePlugin_IsMidiEffect
    juce::ignoreUnused (layouts);
@@ -230,7 +341,7 @@ bool Distortion_ModellerAudioProcessor::isBusesLayoutSupported (const BusesLayou
 }
 #endif
 
-void Distortion_ModellerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
    juce::ScopedNoDenormals noDenormals;
    
@@ -240,10 +351,15 @@ void Distortion_ModellerAudioProcessor::processBlock (juce::AudioBuffer<float>& 
       action();
    }
    
+   auto* playhead = getPlayHead();
+   if(playhead) {
+      for(int h = 0; h < chebyshev_distortions.size(); h++) {
+         chebyshev_distortions[h]->sync_with_playhead(playhead);
+      }
+   }
    
    dsp::AudioBlock<float> in_block(buffer);
 
-   int num_samples = buffer.getNumSamples() * oversample_factor;
    dsp::AudioBlock<float> oversampled = oversampler->processSamplesUp(in_block);
    
    for(int ch = 0; ch < oversampled.getNumChannels(); ch++) {
@@ -255,29 +371,30 @@ void Distortion_ModellerAudioProcessor::processBlock (juce::AudioBuffer<float>& 
    }
    
    filter_bank->process(oversampled, split_bands);
+   
+   int reduced_block_size = oversampled.getNumSamples();
    oversampled.clear();
+    
+    read_bands = split_bands;
    
-   // TODO: allocation? bad? maybe reserve beforehand!
-   auto read_bands = split_bands;
-   
-   skipped_bands.clear();
-   
-
    for(int b = read_bands.size()-1; b >= 0; b--) {
-      float centre_freq = filter_bank->filters[0][b]->get_centre_freq();
+      float centre_freq = filter_bank->get_centre_freq(b);
 
       // Apply tone control
-      float attenuation = ((tone_cutoff * 0.25 * sample_rate) / centre_freq) - 1.0;
-      read_bands[b] *= std::clamp(attenuation, 0.0f, 1.0f);
+      float attenuation = ((tone_cutoff * 0.25 * sample_rate) / centre_freq) - 1.0f;
+      
+       read_bands[b] = read_bands[b].getSubBlock(0, reduced_block_size);
+
+       read_bands[b] *= std::clamp(attenuation, 0.0f, 1.0f);
       
       // Scale bands to be closer to range -1 to 1.
       // This will lead to more extreme distortion effects with clearer harmonics,
-      // Since chebyshev distortions are more sensitive in that range
+      // Since chebyshev polynomials are more sensitive in that range
       peak_scalers[b]->get_scaling(read_bands[b], instant_amp[b]);
       peak_scalers[b]->get_inverse(inv_scaling[b]);
       
-      read_bands[b] *= instant_amp[b];
-
+       read_bands[b] *= instant_amp[b];
+   
    }
    
    for(int h = 0; h < chebyshev_distortions.size(); h++) {
@@ -286,62 +403,65 @@ void Distortion_ModellerAudioProcessor::processBlock (juce::AudioBuffer<float>& 
    }
    
    for(int b = 0; b < write_bands.size(); b++) {
-      write_bands[b] *= inv_scaling[b];
-      noise_filters[b].process(dsp::ProcessContextReplacing<float>(write_bands[b]));
-      oversampled += write_bands[b];
+      
+      auto block = write_bands[b].getSubBlock(0, reduced_block_size);
+      block *= inv_scaling[b];
+      
+      noise_filters[b].process(dsp::ProcessContextReplacing<float>(block));
+      oversampled += block;
       
       write_bands[b].clear();
    }
 
    oversampler->processSamplesDown(in_block);
-
+ 
    in_block *= master_volume;
    
 }
 
-void Distortion_ModellerAudioProcessor::valueTreeChildRemoved(ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved)
+void ZirconAudioProcessor::valueTreeChildRemoved(ValueTree &parent_tree, ValueTree &removed_child, int idx)
 {
-   if(childWhichHasBeenRemoved.getType() == Identifier("XYSlider")) {
-      queue.enqueue([this, indexFromWhichChildWasRemoved]() mutable {
-         delete_harmonic(indexFromWhichChildWasRemoved);
+   if(removed_child.getType() == Identifier("XYSlider")) {
+      queue.enqueue([this, idx]() mutable {
+         delete_harmonic(idx);
       });
    }
    
 }
 
-void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &treeWhosePropertyHasChanged, const Identifier &property)
+void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, const Identifier &property)
 {
 
-   float value = treeWhosePropertyHasChanged.getProperty(property);
-   if(treeWhosePropertyHasChanged.getType() == Identifier("XYSlider")) {
-      int slider_idx = treeWhosePropertyHasChanged.getParent().indexOf(treeWhosePropertyHasChanged);
-      
-      //int size = chebyshev_distortions.size();
-      //if(slider_idx >= size) return;
+   float value = changed_tree.getProperty(property);
+   if(changed_tree.getType() == Identifier("XYSlider")) {
+      int slider_idx = changed_tree.getParent().indexOf(changed_tree);
       
       if(property == Identifier("X") || property == Identifier("Y") || property == Identifier("Kind")) {
-         float x_value = treeWhosePropertyHasChanged.getProperty("X");
-         float y_value = treeWhosePropertyHasChanged.getProperty("Y");
-         bool kind = treeWhosePropertyHasChanged.getProperty("Kind");
-         HarmonicResponse harmonic = {x_value * 9, (1.0 - y_value) * 1.5, kind};
+         float x_value = changed_tree.getProperty("X");
+         float y_value = changed_tree.getProperty("Y");
+         bool kind = changed_tree.getProperty("Kind");
+         float shift = x_value * 9;
+         float gain = (1.0f - y_value) * 1.5;
          
-         queue.enqueue([this, harmonic, slider_idx]() mutable {
-            set_harmonic(slider_idx, harmonic);
+         queue.enqueue([this, kind, shift, gain, slider_idx]() mutable {
+            set_harmonic(slider_idx, shift, gain, kind);
          });
       }
       else if(property == Identifier("Even")) {
-        
          queue.enqueue([this, value, slider_idx]() mutable {
-         chebyshev_distortions[slider_idx]->set_even((int)value & 1);
-         chebyshev_distortions[slider_idx]->set_odd((int)value & 2);
+            chebyshev_distortions[slider_idx]->set_odd((int)value & 1);
+            chebyshev_distortions[slider_idx]->set_even((int)value & 2);
          });
       }
       else if(property == Identifier("ModDepth")) {
          queue.enqueue([this, value, slider_idx]() mutable {
-            for(int b = 0; b < num_bands; b++) {
-               //chebyshev_distortions[b][slider_idx]->set_filter_resonance(value);
-               chebyshev_distortions[slider_idx]->set_mod_depth(value);
-            }
+            chebyshev_distortions[slider_idx]->set_mod_depth(value * 5.0f);
+         });
+      }
+      else if(property == Identifier("ModSettings")) {
+         queue.enqueue([this, value, slider_idx]() mutable {
+            chebyshev_distortions[slider_idx]->set_sync((int)value & 1);
+            chebyshev_distortions[slider_idx]->set_stereo((int)value & 2);
          });
       }
       else if(property == Identifier("ModShape")) {
@@ -360,7 +480,7 @@ void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &tre
                chebyshev_distortions[slider_idx]->enabled = value;
          });
       }
-      else if(property == Identifier("Clarity")) {
+      else if(property == Identifier("Shape")) {
          queue.enqueue([this, value, slider_idx]() mutable {
                chebyshev_distortions[slider_idx]->set_scaling(value);
          });
@@ -368,8 +488,7 @@ void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &tre
    }
    else if(property == Identifier("Intermodulation")) {
       queue.enqueue([this, value]() mutable {
-         float options[3] = {-0.8, 0.0, 0.3};
-         update_bands(options[(int)value]);
+         update_bands((int)value);
       });
    }
    else if(property == Identifier("Tone")) {
@@ -386,7 +505,7 @@ void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &tre
    }
    else if(property == Identifier("Saturation")) {
       queue.enqueue([this, value]() mutable {
-         saturation = std::max(value * 17.0, 1e-4);
+         saturation = std::max(value * 17.0f, 1e-4f);
       });
    }
    else if(property == Identifier("Volume")) {
@@ -397,12 +516,12 @@ void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &tre
    }
    else if(property == Identifier("Quality")) {
       queue.enqueue([this, value]() mutable {
-         
-         
+         set_oversample_rate(1<<(int)value);
       });
    }
    else if(property == Identifier("Heavy")) {
       queue.enqueue([this, value]() mutable {
+         heavy_mode = value;
          for(int b = 0; b < num_bands; b++) {
             peak_scalers[b]->set_heavy(value);
          }
@@ -415,47 +534,45 @@ void Distortion_ModellerAudioProcessor::valueTreePropertyChanged (ValueTree &tre
          smooth_mode = value;
          
          for(int b = 0; b < num_bands; b++) {
-            float centre_freq = filter_bank->filters[0][b]->get_centre_freq();
+            float centre_freq = filter_bank->get_centre_freq(b);
+            centre_freq = std::min<float>(centre_freq, sample_rate / 2 - 1);
             noise_filters[b].setType(smooth_mode ? dsp::StateVariableTPTFilterType::bandpass : dsp::StateVariableTPTFilterType::highpass);
-            noise_filters[b].setCutoffFrequency(smooth_mode ? centre_freq : (centre_freq * (2.0 / 3.0)));
+            noise_filters[b].setCutoffFrequency(smooth_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
          }
       });
    }
 }
 
-void Distortion_ModellerAudioProcessor::delete_harmonic(int idx) {
+void ZirconAudioProcessor::delete_harmonic(int idx) {
       chebyshev_distortions.remove(idx);
 }
 
-void Distortion_ModellerAudioProcessor::set_harmonic(int idx, HarmonicResponse response) {
+void ZirconAudioProcessor::set_harmonic(int idx, float shift, float gain, bool kind) {
    
    if(idx >= chebyshev_distortions.size() || idx < 0) {
-      auto& [shift, gain, kind] = response;
-      
-         auto* distortion = chebyshev_distortions.add(new ChebyshevTable({sample_rate * oversample_factor, (juce::uint32)block_size * oversample_factor, (juce::uint32)getTotalNumInputChannels()}, shift, gain, kind));
+      auto* distortion = chebyshev_distortions.add(new ChebyshevTable(oversampled_spec, shift, gain, kind));
          
-      distortion->set_scaling(1.0);
+      distortion->set_scaling(1.0f);
    }
    else
    {
-      auto& [shift, gain, kind] = response;
       chebyshev_distortions[idx]->set_table(shift, gain, kind);
    }
 }
 
 //==============================================================================
-bool Distortion_ModellerAudioProcessor::hasEditor() const
+bool ZirconAudioProcessor::hasEditor() const
 {
    return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* Distortion_ModellerAudioProcessor::createEditor()
+juce::AudioProcessorEditor* ZirconAudioProcessor::createEditor()
 {
-   return new Distortion_ModellerAudioProcessorEditor (*this);
+   return new ZirconAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void Distortion_ModellerAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void ZirconAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
    // You should use this method to store your parameters in the memory block.
    // You could do that either as raw data, or use the XML or ValueTree classes
@@ -469,13 +586,15 @@ void Distortion_ModellerAudioProcessor::getStateInformation (juce::MemoryBlock& 
    
 }
 
-void Distortion_ModellerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
    // todo: check if correct data
    
-   main_tree.copyPropertiesAndChildrenFrom(ValueTree::readFromData(data, sizeInBytes), nullptr);
+   proc_valuetree.state.copyPropertiesAndChildrenFrom(ValueTree::readFromData(data, sizeInBytes), nullptr);
    
-   auto* editor = static_cast<Distortion_ModellerAudioProcessorEditor*>(getActiveEditor());
+   main_tree = proc_valuetree.state;
+   
+   auto* editor = static_cast<ZirconAudioProcessorEditor*>(getActiveEditor());
 
    if(editor) {
       
@@ -494,9 +613,13 @@ void Distortion_ModellerAudioProcessor::setStateInformation (const void* data, i
    // whose contents will have been created by the getStateInformation() call.
 }
 
+void ZirconAudioProcessor::valueTreeChildAdded(ValueTree &parentTree, ValueTree &childWhichHasBeenAdded) {
+
+}
+
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-   return new Distortion_ModellerAudioProcessor();
+   return new ZirconAudioProcessor();
 }

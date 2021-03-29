@@ -12,7 +12,7 @@
 #include "PeakScaler.hpp"
 #include "SequenceLFO.hpp"
 
-inline static const int num_polynomials = 15;
+inline static const int num_polynomials = 25;
 
 class ChebyshevFactory : public dsp::LookupTableTransform<float>
 {
@@ -33,35 +33,51 @@ private:
 };
 
 
-
+using DistortionState = std::tuple<
+    bool,   // Enabled
+    bool,   // Kind
+    float,  // Polynomial order
+    float,  // Gain
+    float,  // Scaling
+    bool,   // Enable odd harmonics
+    bool,   // Enable even harmonics
+    float,  // Modulation frequency
+    float,  // Modulation Depth
+    int,     // Modulation shape (binary flag)
+    bool,    // LFO Sync
+    bool    // LFO Stereo
+>;
 
 class ChebyshevTable
 {
 public:
     //==============================================================================
     
-    float scaling;
     bool enabled = true;
-    float sample_rate;
+    bool kind = false;
     
     float poly_order;
     float gain;
+    float scaling;
     
-    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
-        
-    float shift;
-    float g;
+    SmoothedValue<float> smoothed_order;
     
     bool odd = true, even = true;
     
+    float mod_freq = 2.0f;
+    float mod_depth = 0.25;
+    int mod_shape = 0;
+    bool lfo_stereo = false, lfo_sync = false;
+    
+    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
+    float sample_rate;
     int num_channels;
     
-    std::vector<SequenceLFO> lfos;
-    std::vector<float> lfo_states;
+    SequenceLFO lfo;
+
+    DistortionState get_state();
     
-    float mod_freq = 2.0;
-    float mod_depth = 0.25;
-    int mod_shape = 0.0;
+    void set_state(const DistortionState& state);
     
     ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind = false);
     
@@ -71,6 +87,12 @@ public:
     
     dsp::AudioBlock<float> buffer;
     HeapBlock<char> buffer_data;
+    
+    dsp::AudioBlock<float> lfo_buffer;
+    HeapBlock<char> lfo_buffer_data;
+    
+    dsp::AudioBlock<float> smoothed_block;
+    HeapBlock<char> smoothed_data;
     
     void set_mod_depth(float depth);
     void set_mod_rate(float rate);
@@ -82,5 +104,8 @@ public:
     void set_odd(bool enable_odd);
     
     void set_table(float order, float gain, bool second_kind = false);
+    
+    void set_sync(bool sync);
+    void sync_with_playhead(AudioPlayHead* playhead);
 
 };

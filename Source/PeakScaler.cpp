@@ -20,17 +20,17 @@ PeakScaler::PeakScaler(const dsp::ProcessSpec& spec, int oversample_factor) {
 }
 
 void PeakScaler::set_gain(float gain_amount) {
-   gain = gain_amount;
+   gain = std::clamp(gain_amount, 0.1f, 1.0f);
 }
 
 
 void PeakScaler::get_scaling(const dsp::AudioBlock<float>& input, dsp::AudioBlock<float>& output){
    
    float heavy_scalar = heavy ? 1e4 : 75.0f;
-   float scaled_gain = dsp::FastMathApproximations::exp(-1.0 / (gain * heavy_scalar)) + (1.0 - dsp::FastMathApproximations::exp(-1.0 / heavy_scalar));
+   float scaled_gain = dsp::FastMathApproximations::exp(-1.0f / (gain * heavy_scalar)) + (1.0f - dsp::FastMathApproximations::exp(-1.0f / heavy_scalar));
    scaled_gain -= heavy ? 0.0f : 0.002f;
-   
-   if(!std::isfinite(scaled_gain)) scaled_gain = 0.0f;
+
+        
    
    for(int ch = 0; ch < input.getNumChannels(); ch++) {
       std::vector<float> real(input.getNumSamples());

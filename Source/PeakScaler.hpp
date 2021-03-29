@@ -12,7 +12,7 @@
 
 struct PeakScaler
 {
-    float gain = 1.0;
+    float gain = 1.0f;
     float sample_rate;
     bool heavy = false;
     

@@ -1,13 +1,13 @@
 //
 //  XYPad.cpp
-//  Distortion_Modeller - Shared Code
+//  Zircon
 //
 //  Created by Tim Schoen on 18/02/2021.
 //
 
 #include "XYPad.hpp"
 #include "Graphs.hpp"
-#include "../LookAndFeel.hpp"
+#include "LookAndFeel.hpp"
 
 XYInspector::XYInspector() {
     
@@ -17,10 +17,17 @@ XYInspector::XYInspector() {
     
     clarity.set_colour(0);
     kind_select.set_colour(0);
+    even_selector.set_colour(0);
 
     mod_depth.set_colour(2);
     mod_rate.set_colour(2);
     shape_select.set_colour(2);
+    mod_settings.set_colour(2);
+    
+    kind_select.set_tooltips({"First kind", "Second kind"});
+    even_selector.set_tooltips({"Odd harmonics", "Even harmonics"});
+    shape_select.set_tooltips({"Sine", "Square", "Triangle", "Sawtooth"});
+    mod_settings.set_tooltips({"Sync to DAW tempo", "Enable/disable stereo"});
     
     clarity.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
@@ -32,38 +39,19 @@ XYInspector::XYInspector() {
         g.setColour(Colours::white);
         g.drawText("SHP", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
         
-        g.strokePath(shape, PathStrokeType(1.0));
+        g.strokePath(shape, PathStrokeType(1.0f));
     };
     
     
     shape_select.set_custom_draw([this](int selection, Graphics &g, SelectorButton &b) {
-        auto path = Graphs::waveshape_hz(1.0, selection, b.getWidth(), b.getHeight(), 7.0f);
-        
+        auto path = Graphs::waveshape_hz(1.0f, selection, b.getWidth(), b.getHeight(), 7.0f);
         
         g.setColour(Colours::white);
-        g.strokePath(path, PathStrokeType(1.0));
+        g.strokePath(path, PathStrokeType(1.0f));
     });
     
     
-    
-    clarity.setRange(0.0, 1.0);
-    
-    
-    
-    shape_select.callback = [this](std::vector<int> selection) {
-        
-        
-        
-        /*
-        shape_selection.setValue(option);
-        mod_rate.filter_type.setValue(option);
-        mod_depth.filter_type.setValue(option); */
-        repaint();
-    };
-    
-    kind_select.callback = [this](int option) {
-        repaint();
-    };
+    clarity.setRange(0.0f, 1.0f);
     
     delete_slider.setConnectedEdges(12);
     
@@ -72,7 +60,7 @@ XYInspector::XYInspector() {
         getParentComponent()->repaint();
     };
     
-    mod_depth.setRange(0.0, 1.0);
+    mod_depth.setRange(0.0f, 1.0f);
     mod_depth.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
 
         auto shape = Graphs::sine_to_square(0.7, value, bounds.getWidth(), bounds.getHeight(), 3);
@@ -86,13 +74,13 @@ XYInspector::XYInspector() {
         
         g.setColour(Colours::white);
         g.drawText("DTH", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
-        g.strokePath(shape, PathStrokeType(1.0));
+        g.strokePath(shape, PathStrokeType(1.0f));
     };
     
-    mod_rate.setRange(1.0, 8.0);
-    mod_rate.setSkewFactor(0.25);
+    mod_rate.setRange(1.0f, 10.0f);
+    mod_rate.setSkewFactor(0.6);
     mod_rate.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
-        auto shape = Graphs::waveshape_hz(value, 0.0, bounds.getWidth(), bounds.getHeight(), 3);
+        auto shape = Graphs::waveshape_hz(value * -4.0f, 0.0f, bounds.getWidth(), bounds.getHeight(), 8);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
@@ -103,7 +91,7 @@ XYInspector::XYInspector() {
         
         g.setColour(Colours::white);
         g.drawText("RT", bounds.getX() + 3, bounds.getY() + 2, 17, 7, Justification::topLeft);
-        g.strokePath(shape, PathStrokeType(1.0));
+        g.strokePath(shape, PathStrokeType(1.0f));
     };
     
     addAndMakeVisible(settings);
@@ -119,15 +107,14 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(delete_slider);
     settings.addAndMakeVisible(even_selector);
    
-    
     set_selection(nullptr);
-    
-    
 }
 
 void XYInspector::resized()
 {
-    int item_width = getWidth() - 20;
+    int margin = 30;
+    int item_width = getWidth() - margin;
+    int x_pos = margin / 2.0f;
     int item_height = 23;
     
     settings.setBounds(getLocalBounds());
@@ -135,21 +122,16 @@ void XYInspector::resized()
     enabled_button.setBounds(0, 0, getWidth() - item_height, item_height);
     delete_slider.setBounds(getWidth() - item_height - 1, 0, item_height, item_height);
     
-    even_selector.setBounds(10 + item_width / 6.0, 30, item_width / 1.5, 20);
-    kind_select.setBounds(10 + item_width / 6.0, 60, (item_width / 1.5) - 1.0, 20);
+    even_selector.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 3.0f, 20);
+    kind_select.setBounds(x_pos + item_width / 2 + 2, 35, item_width / 3.0f, 20);
     
-    clarity.setBounds(10, 90, item_width, item_height);
+    clarity.setBounds(x_pos, 70, item_width, item_height);
 
+    shape_select.setBounds(x_pos + item_width / 6.0f, 115, item_width / 1.5f, 20);
+    mod_settings.setBounds(x_pos + item_width / 6.0f, 150, item_width / 1.5f, 20);
     
-    
-    shape_select.setBounds(10 + item_width / 6.0, 140, item_width / 1.5, 20);
-    mod_settings.setBounds(10 + item_width / 6.0, 170, item_width / 1.5, 20);
-    
-    
-    mod_rate.setBounds(10, 200, item_width, item_height);
-    mod_depth.setBounds(10, 230, item_width, item_height);
-    
-    
+    mod_rate.setBounds(x_pos, 185, item_width, item_height);
+    mod_depth.setBounds(x_pos, 220, item_width, item_height);
 }
 
 void XYInspector::paint(Graphics& g)
@@ -158,9 +140,8 @@ void XYInspector::paint(Graphics& g)
     
     if(!selection) {
         g.setColour(Colours::white);
-        g.drawText("No Selection", 0, getHeight() / 2.0, getWidth(), 14, Justification::centred);
+        g.drawText("No Selection", 0, getHeight() / 2.0f, getWidth(), 14, Justification::centred);
     }
-
 }
 
 
@@ -171,7 +152,6 @@ void XYInspector::set_selection(XYSlider* slider) {
         attach_to_tree(selection->slider_tree);
         int idx = selection->get_index();
         enabled_button.setButtonText(String(idx + 1));
-        //enabled_button.setColour(TextButton::buttonOnColourId, ColourTheme::highlights[idx]);
     }
     else {
         settings.setVisible(false);
@@ -182,18 +162,16 @@ void XYInspector::set_selection(XYSlider* slider) {
 void XYInspector::attach_to_tree(ValueTree tree)
 {
     current_tree = tree;
-    clarity.getValueObject().referTo(tree.getPropertyAsValue("Clarity", nullptr));
+    clarity.getValueObject().referTo(tree.getPropertyAsValue("Shape", nullptr));
     
     even_selector.getValueObject().referTo(tree.getPropertyAsValue("Even", nullptr));
     
     shape_select.getValueObject().referTo(tree.getPropertyAsValue("ModShape", nullptr));
     kind_select.getValueObject().referTo(tree.getPropertyAsValue("Kind", nullptr));
     
-    
     mod_depth.getValueObject().referTo(tree.getPropertyAsValue("ModDepth", nullptr));
-    
     mod_rate.getValueObject().referTo(tree.getPropertyAsValue("ModRate", nullptr));
-
+    mod_settings.getValueObject().referTo(tree.getPropertyAsValue("ModSettings", nullptr));
     
     enabled_button.getToggleStateValue().referTo(tree.getPropertyAsValue("Enabled", nullptr));
 }

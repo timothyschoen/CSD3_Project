@@ -14,22 +14,22 @@ struct Graphs
         int start_point = margin;
         int end_point = width - margin;
         float sine_width = width - (2.474 * margin);
-        float half_height = height / 2.0;
+        float half_height = height / 2.0f;
         
         Path shape;
         shape.startNewSubPath(0, half_height);
         shape.lineTo(start_point, half_height);
         
         for(int x = start_point; x < end_point; x += 1) {
-            float y = dsp::FastMathApproximations::sin(((x - (float)start_point) / sine_width) * 2.0 * M_PI);
+            float y = dsp::FastMathApproximations::sin(((x - (float)start_point) / sine_width) * 2.0f * M_PI);
             
             y = dsp::FastMathApproximations::tanh(y / scalar_value);
             
-            y += 1.0;
+            y += 1.0f;
             y *= 0.5;
             
             y *= amplitude;
-            y += (1.0 - amplitude) * 0.5;
+            y += (1.0f - amplitude) * 0.5;
             
             Point<float> sine_point(x, y * height);
             shape.lineTo(sine_point);
@@ -44,63 +44,68 @@ struct Graphs
     
     static Path waveshape_hz(float scalar_value, float waveshape, int width, int height, int margin) {
         
-        scalar_value *= 2.0;
-        scalar_value += 1.0;
-        
-        
-        
-        int start_point = margin * 1.25;
+        int start_point = margin;
         int end_point = width - margin;
-        float sine_width = (width - (2.584 * margin));
-        float half_height = height / 2.0;
+        float sine_width = (end_point - start_point) + 1.0f;
+        float half_height = height / 2.0f;
         
         Path shape;
         shape.startNewSubPath(0, half_height);
         shape.lineTo(start_point, half_height);
         
+        float phase = 0;
+        
         for(float x = start_point; x < end_point; x += 0.5) {
-            float phase = scalar_value * ((x - (float)start_point) / sine_width);
-            while(phase > 1.0f) phase -= 2.0f;
+            //float phase = scalar_value * ((x - (float)start_point) / sine_width);
             
+            phase += (scalar_value / 2.0f) / sine_width;
+            if(phase >= 1.0f) phase -= 1.0f;
+            if(phase < 0.0f) phase += 1.0f;
 
             float y;
             // Sine
             if(waveshape == 0.0f) {
-                y = dsp::FastMathApproximations::sin(phase * M_PI);
+                y = dsp::FastMathApproximations::sin(phase * 2.0f * M_PI);
             }
             // Square
             else if(waveshape == 1.0f) {
-                y = phase < 0 ? -1.0f : 1.0f;
+                y = phase < 0.5f ? -1.0f : 1.0f;
             }
             // Triangle
             else if(waveshape == 2.0f) {
-                y = (abs(phase) - (0.5)) * (2.0);
+                
+                // Shift phase to align with other shapes
+                float shifted_phase = phase + 0.25;
+                if(shifted_phase >= 1.0f) shifted_phase -= 1.0f;
+                
+                y = ((shifted_phase < 0.5) * (4.0f * shifted_phase - 1.0f)) + ((shifted_phase >= 0.5) * (1.0f - 4.0f * (shifted_phase - 0.5)));
             }
             // Sawtooth
             else {
-                y = phase;
-                
+                y = -1.0f + (2.0f * phase);
             }
             
-            if(x < start_point + (margin * 0.25)) {
-                y = std::max(y, 0.0f);
+            if(x < start_point + (margin * 0.3)) {
+                //y = ((int)waveshape)&1 ? std::max(y, 0.0f) : std::min(y, 0.0f);
             }
             
 
-            if(x > end_point - (margin * 0.25)) {
-                y = std::min(y, 0.0f);
+            if(x > end_point - (margin * 0.3)) {
+                
+                //y = ((int)waveshape)&1 ? std::min(y, 0.0f) : std::max(y, 0.0f);
+               // y = std::min(y, 0.0f);
             }
             
             float amplitude = 0.6;
             
             // TODO: apply waveshaping
             //y = dsp::FastMathApproximations::tanh(y / scalar_value);
-            
-            y += 1.0;
-            y *= 0.5;
+
+            y *= -0.5;
+            y += 0.5;
             
             y *= amplitude;
-            y += (1.0 - amplitude) * 0.5;
+            y += (1.0f - amplitude) * 0.5;
             
             
             
@@ -117,29 +122,28 @@ struct Graphs
     
     
     
-    static Path draw_filter(float cutoff, float resonance, int width, int height, int type) {
+    static Path draw_filter(float cutoff, float resonance, int width, int height, int type, float amp = 0.6) {
         
         std::vector<float> y_pos;
         std::vector<float> x_pos;
-        
-        float amp = 0.6f;
-        float q = resonance / 3.0;
+
+        float q = resonance / 3.0f;
         
         Path filter_shape;
         // Draw flat when LPF or HPF is at max
         if((type == 0 && cutoff >= 0.97f) ||
            (type == 2 && cutoff <= 0.04f)) {
             
-            filter_shape.startNewSubPath(0.0, height);
-            filter_shape.lineTo(0.0, (1.0 - amp) * (float)height);
-            filter_shape.lineTo(width, (1.0 - amp) * (float)height);
+            filter_shape.startNewSubPath(0.0f, height);
+            filter_shape.lineTo(0.0f, (1.0f - amp) * (float)height);
+            filter_shape.lineTo(width, (1.0f - amp) * (float)height);
             filter_shape.lineTo(width, height);
             return filter_shape;
         }
         
         if(type == 0) {
             y_pos = {amp, amp, amp + q, 0.0f};
-            x_pos = {0.02, 0.8f * cutoff, 1.0f * cutoff, 1.2f * cutoff};
+            x_pos = {0.02, 0.8f * cutoff, 1.0f * cutoff, std::min(1.2f * cutoff, 1.0f)};
             filter_shape.startNewSubPath(0.02f, height);
         }
         else if(type == 1) {
@@ -149,21 +153,21 @@ struct Graphs
             y_pos = {0.0f, amp + q, amp + q, 0.0f};
             x_pos = {cutoff - 0.15f, cutoff - 0.1f, cutoff + 0.1f, cutoff + 0.15f};
             
-            filter_shape.startNewSubPath(0.5 * width, height);
+            filter_shape.startNewSubPath(0.5f * width, height);
             
         }
         else {
             y_pos = {amp, amp, amp + q, 0.0f};
-            x_pos = {0.98, 1.2f * cutoff, 1.0f * cutoff, 0.8f * cutoff};
+            x_pos = {0.98, std::min(1.2f * cutoff, 1.0f), 1.0f * cutoff, 0.8f * cutoff};
             
             filter_shape.startNewSubPath(width - 0.02f, height);
         }
         
         for(int i = 0; i < 4; i++) {
-            filter_shape.lineTo(Point<float>(x_pos[i] * width, (1.0 - y_pos[i]) * height));
+            filter_shape.lineTo(Point<float>(x_pos[i] * width, (1.0f - y_pos[i]) * height));
         }
         
-        filter_shape = filter_shape.createPathWithRoundedCorners(2.0);
+        filter_shape = filter_shape.createPathWithRoundedCorners(2.0f);
         
         return filter_shape;
     }

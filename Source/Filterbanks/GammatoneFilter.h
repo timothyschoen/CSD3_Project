@@ -41,8 +41,8 @@ private:
     std::vector<float> cos_phase;
     std::vector<float> sin_phase;
     
-    float sinphase = 0.0;
-    float cosphase = 1.0;
+    float sinphase = 0.0f;
+    float cosphase = 1.0f;
     
     std::vector<float> z_real;
     std::vector<float> z_imag;

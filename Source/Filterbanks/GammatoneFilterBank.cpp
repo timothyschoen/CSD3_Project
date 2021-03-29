@@ -27,17 +27,14 @@
 
 #define GAMMATONE_FILTER_ORDER 4
 
-GammatoneFilterBank::GammatoneFilterBank(float rate, int size, int channels, float filter_q, float filter_min_width)
+GammatoneFilterBank::GammatoneFilterBank(dsp::ProcessSpec& spec)
 {
     
-    num_channels = channels;
-    block_size = size;
-    q = filter_q;
-    min_width = filter_min_width;
+    num_channels = spec.numChannels;
+    block_size = spec.maximumBlockSize;
+    sample_rate = spec.sampleRate;
     
-    sample_rate = rate;
-    
-    filters.resize(num_channels, std::vector<GammatoneFilter*>());
+    filters.resize(num_channels);
 }
 
 GammatoneFilterBank::~GammatoneFilterBank()
@@ -46,7 +43,7 @@ GammatoneFilterBank::~GammatoneFilterBank()
 
 int GammatoneFilterBank::init_with_overlap(float low_freq, float high_freq, float overlap)
 {
-    float stepfactor = 1.0 - overlap;
+    float stepfactor = 1.0f - overlap;
     
     assert(overlap < 1);
     assert(high_freq > low_freq);
@@ -74,7 +71,7 @@ int GammatoneFilterBank::init_with_overlap(float low_freq, float high_freq, floa
     return num_filters;
 }
 
-//////////////////////////////////////////////
+
 float GammatoneFilterBank::init_with_num_filters(float low_freq, float high_freq, unsigned int n_filters)
 {
     
@@ -87,36 +84,32 @@ float GammatoneFilterBank::init_with_num_filters(float low_freq, float high_freq
 }
 
 
-//////////////////////////////////////////////
+
 void GammatoneFilterBank::add_filter(unsigned _order, float _freq, float _erb)
 {
     for(int ch = 0; ch < num_channels; ch++) {
-        filters[ch].push_back(new GammatoneFilter(sample_rate, block_size, _order, _freq, _erb));
+        filters[ch].push_back(std::unique_ptr<GammatoneFilter>(new GammatoneFilter(sample_rate, block_size, _order, _freq, _erb)));
     }
    
 }
 
 
-//////////////////////////////////////////////
+
 void GammatoneFilterBank::remove_filters()
 {
     for(int ch = 0; ch < num_channels; ch++) {
-        for(int b = 0; b < filters[ch].size(); b++) {
-            delete filters[ch][b];
-        }
         filters[ch].clear();
     }
-    
 }
 
-//////////////////////////////////////////////
+
 int GammatoneFilterBank::get_num_filters()
 {
     return (int)filters[0].size();
 }
 
-//////////////////////////////////////////////
-void GammatoneFilterBank::process(dsp::AudioBlock<float> in_buffer, std::vector<dsp::AudioBlock<float>> out_buffer)
+
+void GammatoneFilterBank::process(const dsp::AudioBlock<float>& in_buffer, std::vector<dsp::AudioBlock<float>>& out_buffer)
 {
     int size = (int)in_buffer.getNumSamples();
     
@@ -127,7 +120,7 @@ void GammatoneFilterBank::process(dsp::AudioBlock<float> in_buffer, std::vector<
     
         for (int n = 0; n < filters[ch].size(); n++)
         {
-            GammatoneFilter* f = filters[ch][n];
+            auto* f = filters[ch][n].get();
             
             if (f != nullptr && n < out_buffer.size())
             {
@@ -136,4 +129,8 @@ void GammatoneFilterBank::process(dsp::AudioBlock<float> in_buffer, std::vector<
         }
         
     }
+}
+
+float GammatoneFilterBank::get_centre_freq(int idx) {
+    return filters[0][idx]->get_centre_freq();
 }

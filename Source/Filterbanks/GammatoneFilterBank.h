@@ -1,15 +1,16 @@
 #pragma once
 
+#include "Filterbank.hpp"
 #include "GammatoneFilter.h"
 #include <vector>
 #include <memory>
 #include <JuceHeader.h>
 
-class GammatoneFilterBank
+class GammatoneFilterBank final : public Filterbank 
 {
 public:    
     
-    GammatoneFilterBank(float rate, int block_size, int channels, float filter_q = 8, float filter_min_width = 125);
+    GammatoneFilterBank(dsp::ProcessSpec& spec);
     
     ~GammatoneFilterBank();
     
@@ -22,14 +23,16 @@ public:
 
     int get_num_filters();
     
-    void process(dsp::AudioBlock<float> in_buffer, std::vector<dsp::AudioBlock<float>> out_buffer);
+    void process(const dsp::AudioBlock<float>& in_buffer, std::vector<dsp::AudioBlock<float>>& out_buffer) override;
     
-    std::vector<std::vector<GammatoneFilter*>> filters;            // Hold the filters in the Bank.
+    float get_centre_freq(int idx) override;
+    
+    std::vector<std::vector<std::unique_ptr<GammatoneFilter>>> filters;            // Hold the filters in the Bank.
 private:
 
     float sample_rate;							// Default sampling freq for adding filters
-    float q;
-    float min_width;
+    float q = 8;
+    float min_width = 125;
     float bw;
     int block_size;
     int num_channels;

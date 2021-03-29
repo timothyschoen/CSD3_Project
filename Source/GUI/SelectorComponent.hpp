@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include "Graphs.hpp"
-#include "../LookAndFeel.hpp"
+#include "LookAndFeel.hpp"
 
 struct SelectorButton : public TextButton
 {
@@ -42,45 +42,45 @@ struct SelectorButton : public TextButton
         auto bounds = button.getBounds();
         
         
-        Path lp_path = Graphs::draw_filter((0.5 - (selection * 0.1)) * 0.9, 0.0, bounds.getWidth(), bounds.getHeight(), 0);
+        Path lp_path = Graphs::draw_filter((0.5f - (selection * 0.1)) * 0.9, 0.0f, bounds.getWidth(), bounds.getHeight(), 0, 0.6);
 
-        Path hp_path = Graphs::draw_filter((0.50 + (selection * 0.1)) * 1.1 , 0.0, bounds.getWidth(), bounds.getHeight(), 2);
+        Path hp_path = Graphs::draw_filter((0.50 + (selection * 0.1)) * 1.1f, 0.0f, bounds.getWidth(), bounds.getHeight(), 2, 0.6);
         
         float alpha = button.getToggleState() ? 0.5f : 0.25f;
         
         g.setColour(Colours::white.withAlpha(alpha));
         g.fillPath(lp_path);
         g.setColour(Colours::white);
-        g.strokePath(lp_path, PathStrokeType(1.0));
+        g.strokePath(lp_path, PathStrokeType(1.0f));
         
         if(selection == 1) {
-            Path bp_path = Graphs::draw_filter(0.5, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            Path bp_path = Graphs::draw_filter(0.5f, 0.0f, bounds.getWidth(), bounds.getHeight(), 1, 0.6);
             
             g.setColour(Colours::white.withAlpha(alpha));
             g.fillPath(bp_path);
             g.setColour(Colours::white);
-            g.strokePath(bp_path, PathStrokeType(1.0));
+            g.strokePath(bp_path, PathStrokeType(1.0f));
         }
         if(selection == 2) {
-            Path bp_path1 = Graphs::draw_filter(0.4, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            Path bp_path1 = Graphs::draw_filter(0.4, 0.0f, bounds.getWidth(), bounds.getHeight(), 1, 0.6);
             
             g.setColour(Colours::white.withAlpha(alpha));
             g.fillPath(bp_path1);
             g.setColour(Colours::white);
-            g.strokePath(bp_path1, PathStrokeType(1.0));
+            g.strokePath(bp_path1, PathStrokeType(1.0f));
             
-            Path bp_path2 = Graphs::draw_filter(0.6, 0.0, bounds.getWidth(), bounds.getHeight(), 1);
+            Path bp_path2 = Graphs::draw_filter(0.6, 0.0f, bounds.getWidth(), bounds.getHeight(), 1, 0.6);
             
             g.setColour(Colours::white.withAlpha(alpha));
             g.fillPath(bp_path2);
             g.setColour(Colours::white);
-            g.strokePath(bp_path2, PathStrokeType(1.0));
+            g.strokePath(bp_path2, PathStrokeType(1.0f));
         }
         
         g.setColour(Colours::white.withAlpha(alpha));
         g.fillPath(hp_path);
         g.setColour(Colours::white);
-        g.strokePath(hp_path, PathStrokeType(1.0));
+        g.strokePath(hp_path, PathStrokeType(1.0f));
         
     }
     
@@ -171,6 +171,13 @@ struct SelectorComponent : public Component, private Value::Listener
         }
     }
     
+    void set_tooltips(StringArray tooltips) {
+        assert(tooltips.size() == buttons.size());
+        
+        for(int i = 0; i < tooltips.size(); i++) {
+            buttons[i]->setTooltip(tooltips[i]);
+        }
+    }
     
 };
 
@@ -188,7 +195,7 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
     
     MultipleSelectorComponent(StringArray titles) {
         int num_options = titles.size();
-        state.resize(num_options, 0.0);
+        state.resize(num_options, 0.0f);
         
         current_selection.addListener(this);
         
@@ -216,6 +223,14 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
     
     Value& getValueObject() {
         return current_selection;
+    }
+    
+    void set_tooltips(StringArray tooltips) {
+        assert(tooltips.size() == buttons.size());
+        
+        for(int i = 0; i < tooltips.size(); i++) {
+            buttons[i]->setTooltip(tooltips[i]);
+        }
     }
     
     void valueChanged(Value& value) override {

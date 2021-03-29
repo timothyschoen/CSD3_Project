@@ -1,12 +1,12 @@
 //
 //  XYPad.cpp
-//  Distortion_Modeller - Shared Code
+//  Zircon
 //
 //  Created by Tim Schoen on 18/02/2021.
 //
 
 #include "XYPad.hpp"
-#include "../LookAndFeel.hpp"
+#include "LookAndFeel.hpp"
 
 
 XYPad::XYPad(ValueTree parent_tree)
@@ -51,7 +51,7 @@ void XYPad::mouseDown(const MouseEvent& e)
 
 void XYPad::resized()
 {
-    int inspector_width = 170;
+    int inspector_width = 185;
 
     pad.setBounds(0, 0, getWidth() - inspector_width, getHeight());
     new_slider.setBounds(pad.getWidth() - 25, pad.getHeight() - 25, 25, 25);
@@ -107,18 +107,7 @@ void XYPad::update_tree(ValueTree tree) {
         pad.addAndMakeVisible(slider);
         
         slider->init_valuetree();
-        
-        child.sendPropertyChangeMessage("X");
-        child.sendPropertyChangeMessage("Y");
-        child.sendPropertyChangeMessage("Kind");
-        child.sendPropertyChangeMessage("Even");
-        child.sendPropertyChangeMessage("Clarity");
-        child.sendPropertyChangeMessage("ModRate");
-        child.sendPropertyChangeMessage("ModDepth");
-        child.sendPropertyChangeMessage("ModShape");
-        child.sendPropertyChangeMessage("Enabled");
 
-        
     }
 }
 

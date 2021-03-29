@@ -1,6 +1,6 @@
 //
 //  XYPad.cpp
-//  Distortion_Modeller - Shared Code
+//  Zircon
 //
 //  Created by Tim Schoen on 18/02/2021.
 //
@@ -23,6 +23,8 @@ int XYSlider::get_index() {
 
 void XYSlider::init_valuetree()
 {
+    slider_tree.addListener(this);
+    
     // check if uninitialised
     if(slider_tree.getNumProperties() == 0)
     {
@@ -34,12 +36,23 @@ void XYSlider::init_valuetree()
         slider_tree.setProperty("Even", 0, nullptr);
         slider_tree.setProperty("ModShape", 0, nullptr);
         slider_tree.setProperty("ModDepth", 0.1, nullptr);
-        slider_tree.setProperty("ModRate", 5.0, nullptr);
-        slider_tree.setProperty("Clarity", 1.0, nullptr);
+        slider_tree.setProperty("ModRate", 5.0f, nullptr);
+        slider_tree.setProperty("ModSettings", 5.0f, nullptr);
+        slider_tree.setProperty("Shape", 1.0f, nullptr);
         
     }
-    
-    slider_tree.addListener(this);
+    else {
+        slider_tree.sendPropertyChangeMessage("X");
+        slider_tree.sendPropertyChangeMessage("Y");
+        slider_tree.sendPropertyChangeMessage("Kind");
+        slider_tree.sendPropertyChangeMessage("Even");
+        slider_tree.sendPropertyChangeMessage("Shape");
+        slider_tree.sendPropertyChangeMessage("ModRate");
+        slider_tree.sendPropertyChangeMessage("ModDepth");
+        slider_tree.sendPropertyChangeMessage("ModShape");
+        slider_tree.sendPropertyChangeMessage("ModSettings");
+        slider_tree.sendPropertyChangeMessage("Enabled");
+    }
 }
 
 void XYSlider::valueTreePropertyChanged (ValueTree &treeWhosePropertyHasChanged, const Identifier &property)

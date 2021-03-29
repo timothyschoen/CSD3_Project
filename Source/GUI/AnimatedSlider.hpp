@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../LookAndFeel.hpp"
+#include "LookAndFeel.hpp"
 
 struct AnimatedSlider : public Slider
 {
@@ -30,10 +30,10 @@ struct AnimatedSlider : public Slider
         if(isHorizontal()) {
 
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
-            g.fillRoundedRectangle(Rectangle<float>(0.0, 0.0, position, height), 3.0f);
+            g.fillRoundedRectangle(Rectangle<float>(0.0f, 0.0f, position, height), 3.0f);
             
             g.setGradientFill(ColourTheme::add_shadow(bg_colour, height));
-            g.fillRoundedRectangle(Rectangle<float>(position, 0.0, width - position, height), 3.0f);
+            g.fillRoundedRectangle(Rectangle<float>(position, 0.0f, width - position, height), 3.0f);
             
             Rectangle<float> bounds = {position - (thumb_width / 2.0f), 0.0f, thumb_width, height};
             
@@ -42,7 +42,7 @@ struct AnimatedSlider : public Slider
             g.fillRoundedRectangle(bounds, 3.0f);
             
             g.setColour(Colours::white);
-            g.drawRoundedRectangle(bounds.reduced(0.0, 1.0), 3.0f, 1.0f);
+            g.drawRoundedRectangle(bounds.reduced(0.0f, 1.0f), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
             
@@ -51,10 +51,10 @@ struct AnimatedSlider : public Slider
             //g.setColour(track_colour);
             
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
-            g.fillRoundedRectangle(Rectangle<float>(0.0, 0.0, width, position), 3.0f);
+            g.fillRoundedRectangle(Rectangle<float>(0.0f, 0.0f, width, position), 3.0f);
                         
             g.setGradientFill(ColourTheme::add_shadow(bg_colour, height));
-            g.fillRoundedRectangle(Rectangle<float>(0.0, position, width, height - position), 3.0f);
+            g.fillRoundedRectangle(Rectangle<float>(0.0f, position, width, height - position), 3.0f);
             
             Rectangle<float> bounds = {0.0f, position - (thumb_width / 2.0f), width, thumb_width};
             
@@ -64,7 +64,7 @@ struct AnimatedSlider : public Slider
             
             
             g.setColour(Colours::white);
-            g.drawRoundedRectangle(bounds.reduced(2.0, 2.0), 3.0f, 1.0f);
+            g.drawRoundedRectangle(bounds.reduced(2.0f, 2.0f), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
 

@@ -15,46 +15,47 @@ bool ChebyshevFactory::fillTables() {
         int order = i;
         
         first_tables[i].initialise([order](float x) mutable {
-            if(x == 0.0) return 0.0f;
+            if(x == 0.0f) return 0.0f;
             
-            if(order == 0) return (float)tanh(x * 2.0);
+            if(order == 0) return (float)tanh(x * 2.0f);
                         
-            float y;
-            y = cos(acos(x) * order);
+            
+            float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
+            
+            float y = cos(acos(x) * order) + offset;
             
             assert(std::isfinite(y));
             
             return y;
             
-        }, -1.0, 1.0, 1<<8);
+        }, -1.0f, 1.0f, 1<<8);
         
         
         second_tables[i].initialise([order](float x) mutable {
-            if(x == 0.0) return 0.0f;
+            if(x == 0.0f) return 0.0f;
             
-            if(order == 0) return (float)tanh(x * 2.0);
-                        
-            float y;
-            if(x == -1.0) x += 1e-5;
-            if(x == 1.0) x -= 1e-5;
-            y = sin((order + 1.0) * acos(x)) / sin(acos(x)) + (1 - (order & 1));
+            if(order == 0) return (float)tanh(x * 2.0f);
+            if(x == -1.0f) x += 1e-5;
+            if(x == 1.0f) x -= 1e-5;
+            
+            float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
+            
+            float y = sin((order + 1.0f) * acos(x)) / sin(acos(x)) + offset;
 
             
             assert(std::isfinite(y));
             
             return y;
             
-        }, -1.0, 1.0, 1<<8);
+        }, -1.0f, 1.0f, 1<<8);
     }
     return true;
 }
 
 
-ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind) {
-    
-        
-    shift = order;
-    g = gain;
+ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind) :  lfo(spec)
+
+{
     
     sample_rate = spec.sampleRate;
     
@@ -62,16 +63,36 @@ ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float 
     
     num_channels = spec.numChannels;
     
-    lfo_states.resize(num_channels, 0.0);
-    
-    lfos.resize(spec.numChannels, SequenceLFO(spec));
+    smoothed_order.reset(sample_rate, 0.02);
     
     set_stereo(true);
     
     buffer = dsp::AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
+    lfo_buffer = dsp::AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
+    smoothed_block = dsp::AudioBlock<float>(smoothed_data, num_channels, spec.maximumBlockSize);
     
     
 }
+
+DistortionState ChebyshevTable::get_state() {
+    return {enabled, kind, poly_order, gain, scaling, odd, even, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo};
+}
+
+void ChebyshevTable::set_state(const DistortionState& state) {
+    std::tie(enabled, kind, poly_order, gain, scaling, odd, even, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo) = state;
+
+    current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
+    
+    smoothed_order.setTargetValue(poly_order);
+    
+    // Make sure state is also set for all LFOs
+    set_mod_depth(mod_depth);
+    set_mod_rate(mod_freq);;
+    set_mod_shape(mod_shape);
+    set_stereo(lfo_stereo);
+    set_sync(lfo_sync);
+}
+
 
 void ChebyshevTable::set_scaling(float amount)
 {
@@ -81,48 +102,48 @@ void ChebyshevTable::set_scaling(float amount)
 
 void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output) {
     
+    int num_samples = input[0].getNumSamples();
     
-    for(int ch = 0; ch < input[0].getNumChannels(); ch++) {
-        lfo_states[ch] = lfos[ch].get_state();
+    lfo_buffer.clear();
+    auto subblock = lfo_buffer.getSubBlock(0, num_samples);
+    lfo.process(subblock);
+    
+    
+    for(int n = 0; n < num_samples; n++) {
+        float value = smoothed_order.getNextValue();
+        smoothed_block.setSample(0, n, value);
     }
+    
+    auto* smoothed_ptr = smoothed_block.getChannelPointer(0);
     
     for(int b = 0; b < input.size(); b++) {
             
-        if(!enabled) {
-            output[b].clear();
-            continue;
-        }
+        if(!enabled) continue;
         
-        // Restore lfo state for each band
-        for(int ch = 0; ch < input[b].getNumChannels(); ch++) {
-            lfos[ch].set_state(lfo_states[ch]);
-        }
-
         buffer.copyFrom(input[b]);
         buffer *= scaling;
         
         for(int ch = 0; ch < buffer.getNumChannels(); ch++) {
             auto* channel_ptr = buffer.getChannelPointer(ch);
             
-            for(int n = 0; n < input[b].getNumSamples(); n++) {
-
-                lfos[ch].tick();
-
-                float mod_source = lfos[ch].get_sample();
+            for(int n = 0; n < num_samples; n++) {
+                float mod_source = lfo_buffer.getSample(ch, n);
                 
-                float order = poly_order + mod_source;
+                float order = smoothed_ptr[n] + mod_source;
                 
                 order = std::clamp(order, 0.0f, 12.0f);
                 
-                bool single = (even + odd) == 1;
-                int distance = single ? 2 : 1;
+                int first_order = order;
+                int second_order = first_order + 1;
                 
-                int first_order = single ? odd + round(order * 0.5) * 2.0 : order;
-                int second_order = first_order + distance;
                 float amp = (order - (float)first_order);
                 
-
-                float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0 - amp);
+                if(even != odd) {
+                    first_order = first_order * 2 + odd;
+                    second_order = second_order * 2 + odd;
+                }
+    
+                float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0f - amp);
                 float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
                 
                 channel_ptr[n] = (y1 + y2) * gain;
@@ -138,43 +159,40 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
 
 
 void ChebyshevTable::set_stereo(bool stereo) {
+    lfo_stereo = stereo;
     
-    for(int i = 0; i < lfos.size(); i++) {
-        lfos[i].set_inverse(stereo ? (i & 1) : 0);
-    }
+    lfo.set_stereo(stereo);
 }
 
 void ChebyshevTable::set_mod_depth(float depth) {
     mod_depth = depth;
-    for(auto& lfo : lfos) {
-        lfo.set_depth(depth);
-    }
+    lfo.set_depth(depth);
 }
 
 void ChebyshevTable::set_mod_rate(float rate) {
     mod_freq = rate;
     
-    for(auto& lfo : lfos) {
-        lfo.set_frequency(rate);
-    }
+    lfo.set_frequency(rate);
 }
 
 void ChebyshevTable::set_mod_shape(int shape_flag) {
     mod_shape = shape_flag;
-    for(auto& lfo : lfos) {
-        lfo.set_voice(shape_flag);
-    }
+    lfo.set_voice(shape_flag);
 }
 
 void ChebyshevTable::set_table(float order, float g, bool second_kind)
 {
     // Apply gain scaling
-    gain =  pow((g + 1.0), 2.0) - 1.0;
+    gain =  pow((g + 1.0f), 2.0f) - 1.0f;
     
+    kind = second_kind;
     poly_order = order;
+    
+    smoothed_order.setTargetValue(order);
+    
     current_table = second_kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
-
 }
+
 void ChebyshevTable::set_even(bool enable_even) {
     even = enable_even;
 }
@@ -183,3 +201,11 @@ void ChebyshevTable::set_odd(bool enable_odd) {
     odd = enable_odd;
 }
 
+void ChebyshevTable::sync_with_playhead(AudioPlayHead* playhead) {
+    lfo.sync_with_playhead(playhead);
+}
+
+void ChebyshevTable::set_sync(bool sync) {
+    lfo_sync = sync;
+    lfo.set_sync(sync);
+}

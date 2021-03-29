@@ -16,43 +16,64 @@ struct SequenceLFO
     
     std::vector<int> sequence = {0, 0, 0, 0};
     
+    int num_channels;
     float sample_rate;
     float phase = 0;
     float frequency = 0;
+    float synced_frequency = 0;
     float depth = 0;
     
-    bool enabled = true;
+    const float NoteTypeScalers[3] = { 1.0f, 2.0f / 3.0f, 1.5f };
+    const float NoteDivisionScalers[7] = { 1.0f / 1.0f * 4.0f,
+                                           1.0f / 2.0f * 4.0f,
+                                           1.0f / 4.0f * 4.0f,
+                                           1.0f / 8.0f * 4.0f,
+                                           1.0f / 16.0f * 4.0f,
+                                           1.0f / 32.0f * 4.0f,
+                                           1.0f / 64.0f * 4.0f };
     
-    int sign = 1;
+    bool enabled = true;
+    bool sync = false;
+    bool stereo = false;
 
     
     SequenceLFO(const dsp::ProcessSpec& spec) {
         sample_rate = spec.sampleRate;
+        num_channels = spec.numChannels;
         
-        waveshapes.resize(4);
-        
+        waveshapes.resize(5);
+
+        // flat shape
+        waveshapes[4] = [this](float x) {
+            return 0;
+        };
         
         // Sine shape
         waveshapes[0] = [this](float x) {
-            return dsp::FastMathApproximations::sin(x * M_PI);
+            return dsp::FastMathApproximations::sin((x * 2.0f * M_PI) - M_PI);
         };
         
         // Square shape
         waveshapes[1] = [this](float x) {
-            return x < 0.0f ? -1.0f : 1.0f;
+            return x < 0.5f ? -1.0f : 1.0f;
         };
         
         //Triangle shape
         waveshapes[2] = [this](float x) {
-            return (abs(x) - 0.5f) * 2.0f;
+            // Shift phase to make it start at 0, and smoothly connect to other shapes
+            x += 0.25;
+            if(x >= 1.0f) x -= 1.0f;
+            
+            return ((x < 0.5) * (4.0f * x - 1.0f)) + ((x >= 0.5) * (1.0f - 4.0f * (x - 0.5)));
         };
         // Sawtooth shape
         waveshapes[3] = [this](float x) {
-            return x;
+            return ((phase * 2.0f) - 1.0f);
         };
     }
     
     void set_voice(int shape) {
+        if(shape != 0) enabled = true;
         sequence = {shape&1, shape&2, shape&4, shape&8};
     };
     
@@ -64,35 +85,9 @@ struct SequenceLFO
         depth = value;
     }
     
-    void tick() {
-        phase += frequency / sample_rate;
-        
-        // Change shape when we complete a cycle
-        if(phase >= 1.0f) {
-            phase -= 2.0f;
-            // Find next sequence
-            int num_trials = 0;
-            enabled = true;
-            
-            state++;
-            state &= 3;
-            
-            while(sequence[state] == 0 && num_trials < 3) {
-                num_trials++;
-                state++;
-                state &= 3;
-            }
-            
-            if(sequence[state & 3] == 0) {
-                state = 0;
-                enabled = false;
-            }
-        }
-    }
-    
     // To allow stereo lfo-ing
-    bool set_inverse(bool inv) {
-        sign = inv ? -1 : 1;
+    bool set_inverse(bool is_stereo) {
+        stereo = is_stereo;
     }
     
     float get_state() {
@@ -102,10 +97,75 @@ struct SequenceLFO
         phase = state;
     }
     
+    void set_sync(bool should_sync) {
+        sync = should_sync;
+    }
+    
+    void set_stereo(bool is_stereo) {
+        stereo = is_stereo;
+    }
+    
     std::vector<std::function<float(float)>> waveshapes;
     
-    float get_sample() {
-        if(!enabled) return 0;
-        return waveshapes[state](phase) * depth * sign;
+    void process(dsp::AudioBlock<float> output) {
+        if(!enabled) {
+            output.clear();
+            return;
+        }
+        auto* output_ptr = output.getChannelPointer(0);
+        for(int n = 0; n < output.getNumSamples(); n++) {
+            phase += frequency / sample_rate;
+            
+            if(phase >= 1.0f) {
+                phase -= 1.0f;
+                next_shape();
+            }
+
+            output_ptr[n] = waveshapes[state](phase) * depth;
+        }
+        
+        if(num_channels > 1) output.getSingleChannelBlock(1).copyFrom(output.getSingleChannelBlock(0));
+        if(stereo) output.getSingleChannelBlock(1) *= -1.0f;
     }
+    
+    void next_shape() {
+        // Find next shape in sequence
+        enabled = true;
+        
+        state++;
+        state &= 3;
+        
+        for(int i = 0; i < sequence.size(); i++) {
+            if(sequence[state] != 0) break;
+            state++;
+            state &= 3;
+        }
+
+        if(sequence[state & 3] == 0) {
+            state = 4;
+            enabled = false;
+        }
+    }
+        
+    void sync_with_playhead(AudioPlayHead* playhead) {
+        AudioPlayHead::CurrentPositionInfo position_info;
+        
+        if(sync) {
+            int noteType = 1;
+            int noteDivision = frequency;
+            
+            playhead->getCurrentPosition(position_info);
+            
+            float tempo_freq = position_info.bpm > 0.0f ? 60.0f / position_info.bpm : 0.0f;
+            
+            float scaler = NoteTypeScalers[noteType] * NoteDivisionScalers[noteDivision];
+
+            synced_frequency = tempo_freq * scaler;
+            
+            // sync phase
+            float p = position_info.ppqPosition * scaler;
+            phase = p - floor(p);
+        }
+    }
+    
 };

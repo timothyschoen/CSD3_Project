@@ -1,6 +1,6 @@
 //
 //  XYPad.hpp
-//  Distortion_Modeller - Shared Code
+//  Zircon
 //
 //  Created by Tim Schoen on 18/02/2021.
 //
@@ -36,7 +36,7 @@ struct XYInspector : public Component
     MultipleSelectorComponent shape_select = MultipleSelectorComponent({"SIN", "TRI", "SQR", "SAW", });
     
     MultipleSelectorComponent mod_settings = MultipleSelectorComponent({"SYNC", "STEREO"});
-    MultipleSelectorComponent even_selector = MultipleSelectorComponent({"EVEN", "ODD"});
+    MultipleSelectorComponent even_selector = MultipleSelectorComponent({"1", "2"});
     
     TextButton enabled_button = TextButton("E");
     
