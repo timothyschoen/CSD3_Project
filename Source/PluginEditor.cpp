@@ -11,7 +11,7 @@
 #include "GUI/Graphs.hpp"
 //==============================================================================
 ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), main_tree(p.main_tree), xy_pad(p.main_tree)
+    : AudioProcessorEditor (&p), main_tree(p.main_tree),  xy_pad(p.main_tree), audioProcessor (p)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -150,7 +150,12 @@ ZirconAudioProcessorEditor::~ZirconAudioProcessorEditor()
 //==============================================================================
 void ZirconAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.fillAll(ColourTheme::bg_lighter);
+    
+    auto base = ColourTheme::bg_lighter;
+    auto gradient = ColourGradient(base.brighter(0.02f), 0, 245, base.darker(0.2f), 0, 345, false);
+    
+    g.setGradientFill(gradient);
+    g.fillRect(0, 245, getWidth(), 100);
 }
 
 void ZirconAudioProcessorEditor::resized()

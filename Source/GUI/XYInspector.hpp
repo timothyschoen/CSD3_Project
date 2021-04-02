@@ -22,6 +22,8 @@ struct XYInspector : public Component
     void set_selection(XYSlider* slider);
     
     void attach_to_tree(ValueTree tree);
+    
+    std::vector<int> last_state;
 
     ValueTree current_tree;
     SafePointer<XYSlider> selection = nullptr;

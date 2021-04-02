@@ -63,15 +63,18 @@ ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float 
     
     num_channels = spec.numChannels;
     
-    smoothed_order.reset(sample_rate, 0.02);
-    
+    smoothed_order.reset(sample_rate, 0.02f);
+    smoothed_gain.reset(sample_rate, 0.02f);
+    smoothed_scaling.reset(sample_rate, 0.02f);
+
     set_stereo(true);
     
     buffer = dsp::AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
     lfo_buffer = dsp::AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
-    smoothed_block = dsp::AudioBlock<float>(smoothed_data, num_channels, spec.maximumBlockSize);
     
-    
+    smoothed_order_buffer = dsp::AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
+    smoothed_gain_buffer = dsp::AudioBlock<float>(smoothed_gain_data, 1, spec.maximumBlockSize);
+    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, 1, spec.maximumBlockSize);
 }
 
 DistortionState ChebyshevTable::get_state() {
@@ -83,8 +86,10 @@ void ChebyshevTable::set_state(const DistortionState& state) {
 
     current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
     
-    smoothed_order.setTargetValue(poly_order);
-    
+    smoothed_order.setCurrentAndTargetValue(poly_order);
+    smoothed_gain.setCurrentAndTargetValue(gain);
+    smoothed_scaling.setCurrentAndTargetValue(scaling);
+
     // Make sure state is also set for all LFOs
     set_mod_depth(mod_depth);
     set_mod_rate(mod_freq);;
@@ -96,6 +101,7 @@ void ChebyshevTable::set_state(const DistortionState& state) {
 
 void ChebyshevTable::set_scaling(float amount)
 {
+    smoothed_scaling.setTargetValue(amount);
     scaling = amount;
     
 }
@@ -107,29 +113,34 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
     lfo_buffer.clear();
     auto subblock = lfo_buffer.getSubBlock(0, num_samples);
     lfo.process(subblock);
+
+    smoothed_order_buffer.fill(1.0f);
+    smoothed_order_buffer *= smoothed_order;
     
+    smoothed_gain_buffer.fill(1.0f);
+    smoothed_gain_buffer *= smoothed_gain;
     
-    for(int n = 0; n < num_samples; n++) {
-        float value = smoothed_order.getNextValue();
-        smoothed_block.setSample(0, n, value);
-    }
+    smoothed_scaling_buffer.fill(1.0f);
+    smoothed_scaling_buffer *= smoothed_scaling;
     
-    auto* smoothed_ptr = smoothed_block.getChannelPointer(0);
+    auto* smoothed_order_ptr = smoothed_order_buffer.getChannelPointer(0);
     
     for(int b = 0; b < input.size(); b++) {
             
         if(!enabled) continue;
         
         buffer.copyFrom(input[b]);
-        buffer *= scaling;
         
         for(int ch = 0; ch < buffer.getNumChannels(); ch++) {
+            auto channel_block = buffer.getSingleChannelBlock(ch);
             auto* channel_ptr = buffer.getChannelPointer(ch);
             
+            channel_block *= smoothed_scaling_buffer;
+
             for(int n = 0; n < num_samples; n++) {
                 float mod_source = lfo_buffer.getSample(ch, n);
                 
-                float order = smoothed_ptr[n] + mod_source;
+                float order = smoothed_order_ptr[n] + mod_source;
                 
                 order = std::clamp(order, 0.0f, 12.0f);
                 
@@ -139,6 +150,7 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
                 float amp = (order - (float)first_order);
                 
                 if(even != odd) {
+                    
                     first_order = first_order * 2 + odd;
                     second_order = second_order * 2 + odd;
                 }
@@ -146,10 +158,12 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
                 float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0f - amp);
                 float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
                 
-                channel_ptr[n] = (y1 + y2) * gain;
+                channel_ptr[n] = (y1 + y2);
             
             }
+            channel_block *= smoothed_gain_buffer;
         }
+        
         output[b] += buffer;
     }
     
@@ -188,6 +202,7 @@ void ChebyshevTable::set_table(float order, float g, bool second_kind)
     kind = second_kind;
     poly_order = order;
     
+    smoothed_gain.setTargetValue(gain);
     smoothed_order.setTargetValue(order);
     
     current_table = second_kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;

@@ -19,11 +19,12 @@ struct SequenceLFO
     int num_channels;
     float sample_rate;
     float phase = 0;
-    float frequency = 0;
-    float synced_frequency = 0;
-    float depth = 0;
     
-    const float NoteTypeScalers[3] = { 1.0f, 2.0f / 3.0f, 1.5f };
+    SmoothedValue<float> synced_frequency;
+    
+    SmoothedValue<float> frequency;
+    SmoothedValue<float> depth;
+    
     const float NoteDivisionScalers[7] = { 1.0f / 1.0f * 4.0f,
                                            1.0f / 2.0f * 4.0f,
                                            1.0f / 4.0f * 4.0f,
@@ -40,6 +41,10 @@ struct SequenceLFO
     SequenceLFO(const dsp::ProcessSpec& spec) {
         sample_rate = spec.sampleRate;
         num_channels = spec.numChannels;
+        
+        synced_frequency.reset(sample_rate, 0.02f);
+        frequency.reset(sample_rate, 0.02f);
+        depth.reset(sample_rate, 0.02f);
         
         waveshapes.resize(5);
 
@@ -78,25 +83,18 @@ struct SequenceLFO
     };
     
     void set_frequency(float freq) {
-        frequency = freq;
+        frequency.setTargetValue(freq);
     }
     
     void set_depth(float value) {
-        depth = value;
+        depth.setTargetValue(value);
     }
     
     // To allow stereo lfo-ing
-    bool set_inverse(bool is_stereo) {
+    void set_inverse(bool is_stereo) {
         stereo = is_stereo;
     }
-    
-    float get_state() {
-        return phase;
-    }
-    void set_state(float state) {
-        phase = state;
-    }
-    
+
     void set_sync(bool should_sync) {
         sync = should_sync;
     }
@@ -104,6 +102,7 @@ struct SequenceLFO
     void set_stereo(bool is_stereo) {
         stereo = is_stereo;
     }
+    
     
     std::vector<std::function<float(float)>> waveshapes;
     
@@ -114,18 +113,20 @@ struct SequenceLFO
         }
         auto* output_ptr = output.getChannelPointer(0);
         for(int n = 0; n < output.getNumSamples(); n++) {
-            phase += frequency / sample_rate;
+            phase += (sync ? synced_frequency.getNextValue() : frequency.getNextValue() * 2.0f) / sample_rate;
             
             if(phase >= 1.0f) {
                 phase -= 1.0f;
                 next_shape();
             }
-
-            output_ptr[n] = waveshapes[state](phase) * depth;
+            output_ptr[n] = waveshapes[state](phase) * depth.getNextValue();
         }
         
-        if(num_channels > 1) output.getSingleChannelBlock(1).copyFrom(output.getSingleChannelBlock(0));
-        if(stereo) output.getSingleChannelBlock(1) *= -1.0f;
+        if(num_channels > 1) {
+            output.getSingleChannelBlock(1).copyFrom(output.getSingleChannelBlock(0));
+            if(stereo) output.getSingleChannelBlock(1) *= -1.0f;
+        }
+        
     }
     
     void next_shape() {
@@ -151,16 +152,15 @@ struct SequenceLFO
         AudioPlayHead::CurrentPositionInfo position_info;
         
         if(sync) {
-            int noteType = 1;
-            int noteDivision = frequency;
+            int noteDivision = frequency.getTargetValue();
             
             playhead->getCurrentPosition(position_info);
             
             float tempo_freq = position_info.bpm > 0.0f ? 60.0f / position_info.bpm : 0.0f;
             
-            float scaler = NoteTypeScalers[noteType] * NoteDivisionScalers[noteDivision];
+            float scaler = NoteDivisionScalers[6 - noteDivision];
 
-            synced_frequency = tempo_freq * scaler;
+            synced_frequency.setTargetValue(tempo_freq * scaler);
             
             // sync phase
             float p = position_info.ppqPosition * scaler;

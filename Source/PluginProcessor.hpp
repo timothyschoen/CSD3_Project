@@ -94,20 +94,22 @@ private:
     
     
     int oversample_factor = 1;
-    float master_volume = 1.0f;
+    SmoothedValue<float> master_volume;
     
-    float tone_cutoff = 1.0f;
-    float saturation = 0.5;
+    SmoothedValue<float> tone_cutoff;
+    SmoothedValue<float> saturation;
     
     bool smooth_mode = false;
     bool heavy_mode = false;
     
 
+   
     
-    std::vector<dsp::AudioBlock<float>> read_bands;
+    dsp::AudioBlock<float> tone_block, saturation_block;
+    HeapBlock<char> tone_data, saturation_data;
     
-    std::vector<HeapBlock<char>> band_data, iamp_data, write_data, inv_data;
-    std::vector<dsp::AudioBlock<float>> inv_scaling, split_bands, write_bands, instant_amp;
+    std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
+    std::vector<dsp::AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;
     
     std::vector<dsp::StateVariableTPTFilter<float>> noise_filters;
     

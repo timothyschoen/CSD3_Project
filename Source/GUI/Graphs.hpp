@@ -85,29 +85,13 @@ struct Graphs
                 y = -1.0f + (2.0f * phase);
             }
             
-            if(x < start_point + (margin * 0.3)) {
-                //y = ((int)waveshape)&1 ? std::max(y, 0.0f) : std::min(y, 0.0f);
-            }
-            
-
-            if(x > end_point - (margin * 0.3)) {
-                
-                //y = ((int)waveshape)&1 ? std::min(y, 0.0f) : std::max(y, 0.0f);
-               // y = std::min(y, 0.0f);
-            }
-            
             float amplitude = 0.6;
-            
-            // TODO: apply waveshaping
-            //y = dsp::FastMathApproximations::tanh(y / scalar_value);
 
             y *= -0.5;
             y += 0.5;
             
             y *= amplitude;
             y += (1.0f - amplitude) * 0.5;
-            
-            
             
             Point<float> sine_point(x, y * height);
             shape.lineTo(sine_point);

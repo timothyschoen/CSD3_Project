@@ -14,7 +14,6 @@ XYInspector::XYInspector() {
     enabled_button.setClickingTogglesState(true);
     enabled_button.setConnectedEdges(12);
     
-    
     clarity.set_colour(0);
     kind_select.set_colour(0);
     even_selector.set_colour(0);
@@ -28,6 +27,21 @@ XYInspector::XYInspector() {
     even_selector.set_tooltips({"Odd harmonics", "Even harmonics"});
     shape_select.set_tooltips({"Sine", "Square", "Triangle", "Sawtooth"});
     mod_settings.set_tooltips({"Sync to DAW tempo", "Enable/disable stereo"});
+    
+    even_selector.callback = [this](std::vector<int> state) {
+        
+        // Don't allow no selection
+        if(state[0] == 0 && state[1] == 0) {
+            even_selector.current_selection.setValue(last_state[0] == 0 ? 1 : 2);
+            last_state = state;
+        };
+        
+        last_state = state;
+        
+    };
+    
+    last_state = even_selector.state;
+    
     
     clarity.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
@@ -61,7 +75,7 @@ XYInspector::XYInspector() {
     };
     
     mod_depth.setRange(0.0f, 1.0f);
-    mod_depth.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+    mod_depth.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds) {
 
         auto shape = Graphs::sine_to_square(0.7, value, bounds.getWidth(), bounds.getHeight(), 3);
         
@@ -77,8 +91,8 @@ XYInspector::XYInspector() {
         g.strokePath(shape, PathStrokeType(1.0f));
     };
     
-    mod_rate.setRange(1.0f, 10.0f);
-    mod_rate.setSkewFactor(0.6);
+
+    
     mod_rate.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::waveshape_hz(value * -4.0f, 0.0f, bounds.getWidth(), bounds.getHeight(), 8);
         
@@ -106,6 +120,16 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(mod_rate);
     settings.addAndMakeVisible(delete_slider);
     settings.addAndMakeVisible(even_selector);
+    
+    
+    mod_settings.callback = [this](std::vector<int> state) {
+        if(state[0]) {
+            mod_rate.setRange(0, 6, 1);
+        }
+        else {
+            mod_rate.setRange(0.0f, 6.0f, 0.001);
+        }
+    };
    
     set_selection(nullptr);
 }
@@ -174,4 +198,13 @@ void XYInspector::attach_to_tree(ValueTree tree)
     mod_settings.getValueObject().referTo(tree.getPropertyAsValue("ModSettings", nullptr));
     
     enabled_button.getToggleStateValue().referTo(tree.getPropertyAsValue("Enabled", nullptr));
+
+    // Check for sync setting and set range of mod rate appropriately
+    if(((int)tree.getProperty("ModSettings")) & 1) {
+        mod_rate.setRange(0, 6, 1);
+    }
+    else {
+        mod_rate.setRange(0.0f, 6.0f, 0.001);
+    }
+
 }

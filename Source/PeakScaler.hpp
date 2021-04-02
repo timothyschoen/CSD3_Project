@@ -12,14 +12,16 @@
 
 struct PeakScaler
 {
-    float gain = 1.0f;
+    SmoothedValue<float> gain;
+    
+    float target_gain;
     float sample_rate;
     bool heavy = false;
     
     std::vector<Hilbert> hilbert;
     
-    dsp::AudioBlock<float> max_values, inv_values;
-    HeapBlock<char> value_data, inv_data;
+    dsp::AudioBlock<float> max_values, inv_values, smoothed_gain;
+    HeapBlock<char> value_data, inv_data, gain_data;
     
     PeakScaler(const dsp::ProcessSpec& spec, int oversample_factor);
 

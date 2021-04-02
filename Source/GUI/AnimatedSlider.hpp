@@ -42,7 +42,7 @@ struct AnimatedSlider : public Slider
             g.fillRoundedRectangle(bounds, 3.0f);
             
             g.setColour(Colours::white);
-            g.drawRoundedRectangle(bounds.reduced(0.0f, 1.0f), 3.0f, 1.0f);
+            g.drawRoundedRectangle(bounds.reduced(0.0f, 0.5f), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
             

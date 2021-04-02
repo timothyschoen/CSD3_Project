@@ -238,6 +238,7 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
         for(int i = 0; i < state.size(); i++) {
             state[i] = flag & (1<<i);
             buttons[i]->setToggleState(state[i], dontSendNotification);
+            buttons[i]->onClick();
         }
     }
 

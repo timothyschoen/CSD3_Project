@@ -12,7 +12,7 @@
 #include "PeakScaler.hpp"
 #include "SequenceLFO.hpp"
 
-inline static const int num_polynomials = 25;
+inline static const int num_polynomials = 40;
 
 class ChebyshevFactory : public dsp::LookupTableTransform<float>
 {
@@ -60,6 +60,8 @@ public:
     float gain;
     float scaling;
     
+    SmoothedValue<float> smoothed_gain;
+    SmoothedValue<float> smoothed_scaling;
     SmoothedValue<float> smoothed_order;
     
     bool odd = true, even = true;
@@ -85,14 +87,9 @@ public:
     
     void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output);
     
-    dsp::AudioBlock<float> buffer;
-    HeapBlock<char> buffer_data;
-    
-    dsp::AudioBlock<float> lfo_buffer;
-    HeapBlock<char> lfo_buffer_data;
-    
-    dsp::AudioBlock<float> smoothed_block;
-    HeapBlock<char> smoothed_data;
+    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer;
+    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data;
+
     
     void set_mod_depth(float depth);
     void set_mod_rate(float rate);

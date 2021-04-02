@@ -12,17 +12,17 @@ struct ColourTheme
         return ColourGradient(base, 0.0f, 0.0f, base.darker(0.3), 0.0f, height, false);
         
     }
+    inline static Colour highlights[5] = {Colour(114, 37, 202), Colour(253, 80, 100),  Colour(85, 149, 218),  Colour(60, 193, 83), Colour( 253, 159, 77)};
 
-    inline static Colour highlights[5] = {Colour(114, 37, 202), Colour(226, 60, 68),  Colour(85, 149, 218), Colour(60, 193, 83), Colour(225, 107, 38)};
 };
+
 
 struct Dark_LookAndFeel : public LookAndFeel_V4
 {
     
     Dark_LookAndFeel() {
         setColour(TextButton::buttonColourId, ColourTheme::main_bg);
-        setColour(TextButton::buttonOnColourId, Colour(131, 37, 251));
-        
+        setColour(TextButton::buttonOnColourId, ColourTheme::highlights[0]);
         
         setColour(Slider::thumbColourId, Colour(131, 37, 251));
         setColour(Slider::trackColourId, Colour(41, 41, 41));
