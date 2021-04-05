@@ -74,7 +74,9 @@ ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float 
     
     smoothed_order_buffer = dsp::AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
     smoothed_gain_buffer = dsp::AudioBlock<float>(smoothed_gain_data, 1, spec.maximumBlockSize);
-    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, 1, spec.maximumBlockSize);
+    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, 2, spec.maximumBlockSize);
+    clean_buffer = dsp::AudioBlock<float>(clean_data, 2, spec.maximumBlockSize);
+    temp_buffer = dsp::AudioBlock<float>(temp_data, 2, spec.maximumBlockSize);
 }
 
 DistortionState ChebyshevTable::get_state() {
@@ -106,7 +108,7 @@ void ChebyshevTable::set_scaling(float amount)
     
 }
 
-void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output) {
+void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude) {
     
     int num_samples = input[0].getNumSamples();
     
@@ -122,6 +124,9 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
     
     smoothed_scaling_buffer.fill(1.0f);
     smoothed_scaling_buffer *= smoothed_scaling;
+   
+    clean_buffer.fill(1.0f);
+    clean_buffer -= smoothed_scaling_buffer;
     
     auto* smoothed_order_ptr = smoothed_order_buffer.getChannelPointer(0);
     
@@ -131,12 +136,16 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
         
         buffer.copyFrom(input[b]);
         
+        temp_buffer.copyFrom(smoothed_scaling_buffer);
+        temp_buffer *= amplitude[b];
+        temp_buffer += clean_buffer;
+        
+        buffer *= temp_buffer;
+        
         for(int ch = 0; ch < buffer.getNumChannels(); ch++) {
             auto channel_block = buffer.getSingleChannelBlock(ch);
             auto* channel_ptr = buffer.getChannelPointer(ch);
             
-            channel_block *= smoothed_scaling_buffer;
-
             for(int n = 0; n < num_samples; n++) {
                 float mod_source = lfo_buffer.getSample(ch, n);
                 

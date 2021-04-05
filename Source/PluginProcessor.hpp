@@ -13,6 +13,7 @@
 #include "../Libraries/gammatone/filterbank.hpp"
 #include "concurrentqueue.hpp"
 #include "ChebyshevTable.hpp"
+#include "HilbertAmplitude.hpp"
 #include <JuceHeader.h>
 
 
@@ -75,7 +76,6 @@ private:
     moodycamel::ConcurrentQueue<std::function<void()>> queue;
     
     std::unique_ptr<Filterbank> filter_bank;
-    OwnedArray<PeakScaler> peak_scalers;
     OwnedArray<ChebyshevTable> chebyshev_distortions;
 
 
@@ -95,18 +95,18 @@ private:
     
     int oversample_factor = 1;
     SmoothedValue<float> master_volume;
-    
     SmoothedValue<float> tone_cutoff;
     SmoothedValue<float> saturation;
+    SmoothedValue<float> gain;
     
     bool smooth_mode = false;
     bool heavy_mode = false;
     
 
-   
+    std::unique_ptr<HilbertAmplitude> hilbert;
     
-    dsp::AudioBlock<float> tone_block, saturation_block;
-    HeapBlock<char> tone_data, saturation_data;
+    dsp::AudioBlock<float> tone_block, saturation_block, gain_block;
+    HeapBlock<char> tone_data, saturation_data, gain_data;
     
     std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
     std::vector<dsp::AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;

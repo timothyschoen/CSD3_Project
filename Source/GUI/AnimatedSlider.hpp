@@ -17,7 +17,7 @@ struct AnimatedSlider : public Slider
         float value = getValue();
         float proportion = valueToProportionOfLength(value);
         
-        // Since our handle is a little bigger than juce accounts for, we need to clip 0.03 off the edges
+        // Since our thumb is a little bigger than juce accounts for, we need to clip 0.03 off the edges
         proportion = std::clamp<float>(proportion, 0.03f, 0.97f);
         
         value = proportionOfLengthToValue(proportion);
@@ -28,7 +28,6 @@ struct AnimatedSlider : public Slider
         Colour bg_colour = findColour(Slider::backgroundColourId);
         
         if(isHorizontal()) {
-
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
             g.fillRoundedRectangle(Rectangle<float>(0.0f, 0.0f, position, height), 3.0f);
             
@@ -38,18 +37,14 @@ struct AnimatedSlider : public Slider
             Rectangle<float> bounds = {position - (thumb_width / 2.0f), 0.0f, thumb_width, height};
             
             g.setGradientFill(ColourTheme::add_shadow(theme_colour, height));
-            //g.setColour();
             g.fillRoundedRectangle(bounds, 3.0f);
             
             g.setColour(Colours::white);
             g.drawRoundedRectangle(bounds.reduced(0.0f, 0.5f), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
-            
         }
         else {
-            //g.setColour(track_colour);
-            
             g.setGradientFill(ColourTheme::add_shadow(track_colour, height));
             g.fillRoundedRectangle(Rectangle<float>(0.0f, 0.0f, width, position), 3.0f);
                         
@@ -60,14 +55,11 @@ struct AnimatedSlider : public Slider
             
             g.setGradientFill(ColourTheme::add_shadow(theme_colour, height));
             g.fillRoundedRectangle(bounds, 3.0f);
-            
-            
-            
+    
             g.setColour(Colours::white);
             g.drawRoundedRectangle(bounds.reduced(2.0f, 2.0f), 3.0f, 1.0f);
             
             draw_image(g, proportion, bounds);
-
         }
     }
     

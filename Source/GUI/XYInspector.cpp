@@ -14,7 +14,7 @@ XYInspector::XYInspector() {
     enabled_button.setClickingTogglesState(true);
     enabled_button.setConnectedEdges(12);
     
-    clarity.set_colour(0);
+    drive.set_colour(0);
     kind_select.set_colour(0);
     even_selector.set_colour(0);
 
@@ -43,15 +43,15 @@ XYInspector::XYInspector() {
     last_state = even_selector.state;
     
     
-    clarity.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
-        auto shape = Graphs::sine_to_square(value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
+    drive.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::sine_to_square(1.0f - value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
         g.setFont(Font(7));
         
         g.setColour(Colours::white);
-        g.drawText("SHP", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.drawText("DRV", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
         
         g.strokePath(shape, PathStrokeType(1.0f));
     };
@@ -65,7 +65,7 @@ XYInspector::XYInspector() {
     });
     
     
-    clarity.setRange(0.0f, 1.0f);
+    drive.setRange(0.0f, 1.0f);
     
     delete_slider.setConnectedEdges(12);
     
@@ -112,7 +112,7 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(kind_select);
     settings.addAndMakeVisible(enabled_button);
    
-    settings.addAndMakeVisible(clarity);
+    settings.addAndMakeVisible(drive);
     
     settings.addAndMakeVisible(shape_select);
     settings.addAndMakeVisible(mod_settings);
@@ -149,7 +149,7 @@ void XYInspector::resized()
     even_selector.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 3.0f, 20);
     kind_select.setBounds(x_pos + item_width / 2 + 2, 35, item_width / 3.0f, 20);
     
-    clarity.setBounds(x_pos, 70, item_width, item_height);
+    drive.setBounds(x_pos, 70, item_width, item_height);
 
     shape_select.setBounds(x_pos + item_width / 6.0f, 115, item_width / 1.5f, 20);
     mod_settings.setBounds(x_pos + item_width / 6.0f, 150, item_width / 1.5f, 20);
@@ -186,7 +186,7 @@ void XYInspector::set_selection(XYSlider* slider) {
 void XYInspector::attach_to_tree(ValueTree tree)
 {
     current_tree = tree;
-    clarity.getValueObject().referTo(tree.getPropertyAsValue("Shape", nullptr));
+    drive.getValueObject().referTo(tree.getPropertyAsValue("Drive", nullptr));
     
     even_selector.getValueObject().referTo(tree.getPropertyAsValue("Even", nullptr));
     

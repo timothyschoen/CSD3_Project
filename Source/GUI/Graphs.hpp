@@ -36,7 +36,6 @@ struct Graphs
         }
         
         shape.lineTo(width - margin, half_height);
-        
         shape.lineTo(width, half_height);
         
         return shape;
@@ -56,8 +55,6 @@ struct Graphs
         float phase = 0;
         
         for(float x = start_point; x < end_point; x += 0.5) {
-            //float phase = scalar_value * ((x - (float)start_point) / sine_width);
-            
             phase += (scalar_value / 2.0f) / sine_width;
             if(phase >= 1.0f) phase -= 1.0f;
             if(phase < 0.0f) phase += 1.0f;
@@ -73,7 +70,6 @@ struct Graphs
             }
             // Triangle
             else if(waveshape == 2.0f) {
-                
                 // Shift phase to align with other shapes
                 float shifted_phase = phase + 0.25;
                 if(shifted_phase >= 1.0f) shifted_phase -= 1.0f;
@@ -138,7 +134,6 @@ struct Graphs
             x_pos = {cutoff - 0.15f, cutoff - 0.1f, cutoff + 0.1f, cutoff + 0.15f};
             
             filter_shape.startNewSubPath(0.5f * width, height);
-            
         }
         else {
             y_pos = {amp, amp, amp + q, 0.0f};
@@ -155,5 +150,4 @@ struct Graphs
         
         return filter_shape;
     }
-
 };

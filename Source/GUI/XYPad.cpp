@@ -65,8 +65,6 @@ void XYPad::paint(Graphics& g)
     int line_spacing = pad.getWidth() / num_lines;
     
     for(int i = 0; i < num_lines; i++) {
-        //if((!even && (i & 1)) || (!odd && !(i & 1))) continue;
-        
         g.setColour((i & 1) ? Colours::white.withAlpha((float)0.6) : Colours::white.withAlpha((float)0.3));
         g.drawLine(i * line_spacing, 0, i * line_spacing, getHeight());
     }

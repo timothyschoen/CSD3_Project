@@ -103,7 +103,6 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
     FloatVectorOperations::multiply(z_real.data(), cos_phase.data(), inBuffer, num_samples);
     FloatVectorOperations::multiply(z_imag.data(), sin_phase.data(), inBuffer, num_samples);
     
-    
     for (int k = 0; k < num_samples; k++)
     {
         for (int n = 0; n < order; n++)

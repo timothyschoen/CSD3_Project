@@ -9,7 +9,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PeakScaler.hpp"
 #include "SequenceLFO.hpp"
 
 inline static const int num_polynomials = 40;
@@ -33,6 +32,8 @@ private:
 };
 
 
+// Tuple that holds tot full state
+// This makes it easier to restore the state when we change the number of filter bands
 using DistortionState = std::tuple<
     bool,   // Enabled
     bool,   // Kind
@@ -53,16 +54,11 @@ class ChebyshevTable
 public:
     //==============================================================================
     
-    bool enabled = true;
-    bool kind = false;
+    bool enabled = true, kind = false;;
     
-    float poly_order;
-    float gain;
-    float scaling;
+    float poly_order, gain, scaling;
     
-    SmoothedValue<float> smoothed_gain;
-    SmoothedValue<float> smoothed_scaling;
-    SmoothedValue<float> smoothed_order;
+    SmoothedValue<float> smoothed_gain, smoothed_scaling, smoothed_order;
     
     bool odd = true, even = true;
     
@@ -85,10 +81,10 @@ public:
     
     void set_scaling(float amount);
     
-    void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output);
+    void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude);
     
-    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer;
-    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data;
+    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
+    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
 
     
     void set_mod_depth(float depth);
