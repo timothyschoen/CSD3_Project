@@ -10,7 +10,6 @@
 
 #include "Filterbanks/GammatoneFilterBank.hpp"
 #include "Filterbanks/ResonBands.hpp"
-#include "../Libraries/gammatone/filterbank.hpp"
 #include "concurrentqueue.hpp"
 #include "ChebyshevTable.hpp"
 #include "HilbertAmplitude.hpp"
