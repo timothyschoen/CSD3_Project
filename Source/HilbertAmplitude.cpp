@@ -1,5 +1,4 @@
 #include "HilbertAmplitude.hpp"
-#include <array>
 #include <complex>
 #include <random>
 #include <algorithm>
@@ -36,7 +35,7 @@ void HilbertAmplitude::clear() {
         for(auto& [xn1, yn1, s, adidx] : channel) {
             xn1 = 0;
             yn1 = 0;
-            std::fill(s, s + 33, 0.0);
+            std::fill(s.begin(), s.end(), 0.0);
             adidx = 0;
         }
     }

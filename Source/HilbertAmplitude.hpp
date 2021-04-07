@@ -1,5 +1,5 @@
 #pragma once
-
+#include <array>
 #include <JuceHeader.h>
 
 
@@ -8,7 +8,7 @@ const float ANTI_DENORMAL_float = 1e-15f;
 // hilbert transformer: generates two orthogonal output signals
 // max. phase error for f = 0.00015..0.49985fs is 0.017 degrees
 
-using HilbertState = std::tuple<float, float, float[33], int>;
+using HilbertState = std::tuple<float, float, std::array<float, 33>, int>;
 
 class HilbertAmplitude {
     

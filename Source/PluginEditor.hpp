@@ -41,7 +41,7 @@ private:
     
     
     
-    AnimatedSlider gain_slider, tone_slider, volume_slider, saturation_slider;
+    AnimatedSlider gain_slider, tone_slider, volume_slider, wet_slider;
     
     SelectorComponent nfilter_selector = SelectorComponent({"20", "50", "70"});
     SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});

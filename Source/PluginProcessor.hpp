@@ -95,7 +95,7 @@ private:
     int oversample_factor = 1;
     SmoothedValue<float> master_volume;
     SmoothedValue<float> tone_cutoff;
-    SmoothedValue<float> saturation;
+    SmoothedValue<float> wet;
     SmoothedValue<float> gain;
     
     bool smooth_mode = false;
@@ -104,8 +104,8 @@ private:
 
     std::unique_ptr<HilbertAmplitude> hilbert;
     
-    dsp::AudioBlock<float> tone_block, saturation_block, gain_block;
-    HeapBlock<char> tone_data, saturation_data, gain_data;
+    dsp::AudioBlock<float> tone_block, wet_block, dry_block, gain_block;
+    HeapBlock<char> tone_data, wet_data, dry_data, gain_data;
     
     std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
     std::vector<dsp::AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;

@@ -23,7 +23,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     addAndMakeVisible(gain_slider);
     
     addAndMakeVisible(volume_slider);
-    addAndMakeVisible(saturation_slider);
+    addAndMakeVisible(wet_slider);
     
     addAndMakeVisible(smooth_button);
     addAndMakeVisible(heavy_button);
@@ -35,19 +35,18 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     tone_slider.setRange(0.0f, 1.0f);
     gain_slider.setRange(0.0f, 1.0f);
     volume_slider.setRange(0.0f, 1.0f);
-    saturation_slider.setRange(0.0f, 1.0f);
+    wet_slider.setRange(0.0f, 1.0f);
     
-    saturation_slider.setSkewFactor(0.25);
     tone_slider.setSkewFactor(0.3);
     
-    saturation_slider.set_colour(1);
+    wet_slider.set_colour(1);
     tone_slider.set_colour(1);
     
     gain_slider.set_colour(3);
     volume_slider.set_colour(3);
     
     gain_slider.setTooltip("Gain");
-    saturation_slider.setTooltip("Saturation");
+    wet_slider.setTooltip("Wet");
     tone_slider.setTooltip("Tone");
     volume_slider.setTooltip("Volume");
     
@@ -91,7 +90,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
         g.strokePath(shape, PathStrokeType(1.0f));
     };
     
-    saturation_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+    wet_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(1.0f - value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
@@ -99,7 +98,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
         g.setFont(Font(7));
         
         g.setColour(Colours::white);
-        g.drawText("SAT", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.drawText("WET", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0f));
     };
 
@@ -117,7 +116,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     tone_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Tone", nullptr));
     gain_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Gain", nullptr));
     volume_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Volume", nullptr));
-    saturation_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Saturation", nullptr));
+    wet_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Wet", nullptr));
     
     xy_pad.update_tree(main_tree.getChildWithName("XYPad"));
    
@@ -165,7 +164,7 @@ void ZirconAudioProcessorEditor::resized()
     nfilter_selector.setBounds(20, 265, 80, 24);
     quality_selector.setBounds(20, 300, 80, 24);
     
-    saturation_slider.setBounds(120, 265, 190, 24);
+    wet_slider.setBounds(120, 265, 190, 24);
     tone_slider.setBounds(120, 300, 190, 24);
     
     gain_slider.setBounds(335, 265, 190, 24);

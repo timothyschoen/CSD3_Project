@@ -52,7 +52,7 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
     main_tree.setProperty("Tone", 1.0f, nullptr);
     main_tree.setProperty("Gain", 1.0f, nullptr);
     main_tree.setProperty("Volume", 1.0f, nullptr);
-    main_tree.setProperty("Saturation", 0.5f, nullptr);
+    main_tree.setProperty("Wet", 0.5f, nullptr);
     main_tree.setProperty("Smooth", false, nullptr);
     main_tree.setProperty("Heavy", false, nullptr);
     main_tree.setProperty("Quality", 1, nullptr);
@@ -61,7 +61,7 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
     layout.add (std::make_unique<AudioParameterFloat> ("Tone", "Tone", 0.0f, 1.0f, 1.0f));
     layout.add (std::make_unique<AudioParameterFloat> ("Gain", "Gain", 0.0f, 1.0f, 0.5f));
     layout.add (std::make_unique<AudioParameterFloat> ("Volume", "Volume", 0.0f, 1.0f, 0.5f));
-    layout.add (std::make_unique<AudioParameterFloat> ("Saturation", "Saturation", 0.0f, 1.0f, 0.5f));
+    layout.add (std::make_unique<AudioParameterFloat> ("Wet", "Wet", 0.0f, 1.0f, 0.5f));
     layout.add (std::make_unique<AudioParameterBool> ("Smooth", "Smooth", false));
     layout.add (std::make_unique<AudioParameterBool> ("Heavy", "Heavy", false));
     
@@ -214,8 +214,10 @@ void ZirconAudioProcessor::update_bands(int freq_range_overlap, bool reset)
     inv_scaling.resize(num_bands);
     
     tone_block = dsp::AudioBlock<float>(tone_data, 1, block_size * oversample_factor);
-    saturation_block = dsp::AudioBlock<float>(saturation_data, 1, block_size * oversample_factor);
     gain_block = dsp::AudioBlock<float>(gain_data, num_channels, block_size * oversample_factor);
+    
+    wet_block = dsp::AudioBlock<float>(wet_data, num_channels, block_size);
+    dry_block = dsp::AudioBlock<float>(dry_data, num_channels, block_size);
     
     for(int i = 0; i < num_bands; i++) {
         split_bands[i] = dsp::AudioBlock<float>(band_data[i], num_channels, block_size * oversample_factor);
@@ -289,12 +291,12 @@ void ZirconAudioProcessor::set_oversample_rate(int new_oversample_factor)
     gain.reset(sample_rate * oversample_factor, 0.02f);
     master_volume.reset(sample_rate * oversample_factor, 0.02f);
     tone_cutoff.reset(sample_rate * oversample_factor, 0.02f);
-    saturation.reset(sample_rate * oversample_factor, 0.02f);
+    wet.reset(sample_rate * oversample_factor, 0.02f);
     
     gain.setCurrentAndTargetValue(main_tree.getProperty("Gain"));
     master_volume.setCurrentAndTargetValue(main_tree.getProperty("Volume"));
     tone_cutoff.setCurrentAndTargetValue(main_tree.getProperty("Tone"));
-    saturation.setCurrentAndTargetValue(main_tree.getProperty("Saturation"));
+    wet.setCurrentAndTargetValue(main_tree.getProperty("Wet"));
     
     update_bands((int)main_tree.getProperty("Intermodulation"), true);
     
@@ -337,11 +339,13 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     
     auto* playhead = getPlayHead();
     if(playhead) {
-        for(int h = 0; h < chebyshev_distortions.size(); h++) {
-            chebyshev_distortions[h]->sync_with_playhead(playhead);
+        for(auto& distortion : chebyshev_distortions) {
+            distortion->sync_with_playhead(playhead);
         }
     }
     
+    wet_block.fill(1.0f);
+    wet_block *= wet;
     
     dsp::AudioBlock<float> in_block(buffer);
 
@@ -349,23 +353,31 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         in_block.getSingleChannelBlock(1).copyFrom(in_block.getSingleChannelBlock(0));
     }
     
+    dry_block.copyFrom(in_block);
+    
+    for(int ch = 0; ch < dry_block.getNumChannels(); ch++) {
+        auto* wet_ptr = wet_block.getChannelPointer(ch);
+        auto* dry_ptr = dry_block.getChannelPointer(ch);
+        for(int n = 0; n < dry_block.getNumSamples(); n++) {
+            dry_ptr[n] *= 1.0f - wet_ptr[n];
+        }
+    }
+    
+    
     dsp::AudioBlock<float> oversampled = oversampler->processSamplesUp(in_block);
     
     // Get smoothed tone value multiplied by 1/5th sample rate
     tone_block.fill(0.2f * sample_rate);
     tone_block *= tone_cutoff;
     
-    gain_block.fill(heavy_mode ? 1.0f : 0.5f);
+    gain_block.fill(heavy_mode ? 3.0f : 1.0f);
     gain_block *= gain;
-    
-    saturation_block.fill(1.0f);
-    saturation_block *= saturation;
+
 
     for(int ch = 0; ch < oversampled.getNumChannels(); ch++) {
         auto* channel_ptr = oversampled.getChannelPointer(ch);
         for(int n = 0; n < oversampled.getNumSamples(); n++) {
-            float saturation_value = std::max(1e-4f, saturation_block.getSample(0, n));
-            channel_ptr[n] = dsp::FastMathApproximations::tanh(saturation_value * channel_ptr[n]) / saturation_value;
+            channel_ptr[n] = dsp::FastMathApproximations::tanh(channel_ptr[n]);
         }
     }
     
@@ -418,6 +430,9 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     }
     
     oversampler->processSamplesDown(in_block);
+    
+    in_block *= wet_block;
+    in_block += dry_block;
     
     in_block *= master_volume;
     
@@ -497,9 +512,9 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
             gain.setTargetValue(value);
         });
     }
-    else if(property == Identifier("Saturation")) {
+    else if(property == Identifier("Wet")) {
         queue.enqueue([this, value]() mutable {
-            saturation.setTargetValue(std::max(value * 17.0f, 1e-4f));
+            wet.setTargetValue(std::max(value, 1e-4f));
         });
     }
     else if(property == Identifier("Volume")) {
