@@ -47,7 +47,7 @@ void ResonBands::create_bands(int n_bands, std::pair<float, float> range, float 
 
 
 void ResonBands::process(const dsp::AudioBlock<float>& input, std::vector<dsp::AudioBlock<float>>& output) {
-    assert(output.size() == num_bands);
+    jassert(output.size() == num_bands);
     
     int num_samples = input.getNumSamples();
     

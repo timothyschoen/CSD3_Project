@@ -45,8 +45,8 @@ int GammatoneFilterBank::init_with_overlap(float low_freq, float high_freq, floa
 {
     float stepfactor = 1.0f - overlap;
     
-    assert(overlap < 1);
-    assert(high_freq > low_freq);
+    jassert(overlap < 1);
+    jassert(high_freq > low_freq);
 
     remove_filters();
     
@@ -113,7 +113,7 @@ void GammatoneFilterBank::process(const dsp::AudioBlock<float>& in_buffer, std::
 {
     int size = (int)in_buffer.getNumSamples();
     
-    assert(in_buffer.getNumChannels() == num_channels);
+    jassert(in_buffer.getNumChannels() == num_channels);
     
     for (int ch = 0; ch < num_channels; ch++)
     {

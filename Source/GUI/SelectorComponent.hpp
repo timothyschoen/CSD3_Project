@@ -172,7 +172,7 @@ struct SelectorComponent : public Component, private Value::Listener
     }
     
     void set_tooltips(StringArray tooltips) {
-        assert(tooltips.size() == buttons.size());
+        jassert(tooltips.size() == buttons.size());
         
         for(int i = 0; i < tooltips.size(); i++) {
             buttons[i]->setTooltip(tooltips[i]);
@@ -226,7 +226,7 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
     }
     
     void set_tooltips(StringArray tooltips) {
-        assert(tooltips.size() == buttons.size());
+        jassert(tooltips.size() == buttons.size());
         
         for(int i = 0; i < tooltips.size(); i++) {
             buttons[i]->setTooltip(tooltips[i]);

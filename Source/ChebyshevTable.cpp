@@ -24,7 +24,7 @@ bool ChebyshevFactory::fillTables() {
             
             float y = cos(acos(x) * order) + offset;
             
-            assert(std::isfinite(y));
+            jassert(std::isfinite(y));
             
             return y;
             
@@ -43,7 +43,7 @@ bool ChebyshevFactory::fillTables() {
             float y = sin((order + 1.0f) * acos(x)) / sin(acos(x)) + offset;
 
             
-            assert(std::isfinite(y));
+            jassert(std::isfinite(y));
             
             return y;
             
