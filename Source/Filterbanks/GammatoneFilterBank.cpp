@@ -23,7 +23,7 @@
 
 #include <cmath>
 #include <assert.h>
-#include "GammatoneFilterBank.h"
+#include "GammatoneFilterBank.hpp"
 
 #define GAMMATONE_FILTER_ORDER 4
 

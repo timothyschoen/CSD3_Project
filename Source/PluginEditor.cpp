@@ -30,6 +30,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     
     addAndMakeVisible(xy_pad);
     
+    xy_pad.inspector.allow_stereo(p.getTotalNumOutputChannels() > 1);
+    
     tone_slider.setRange(0.0f, 1.0f);
     gain_slider.setRange(0.0f, 1.0f);
     volume_slider.setRange(0.0f, 1.0f);

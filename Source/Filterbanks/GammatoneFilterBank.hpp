@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Filterbank.hpp"
-#include "GammatoneFilter.h"
+#include "GammatoneFilter.hpp"
 #include <vector>
 #include <memory>
 #include <JuceHeader.h>

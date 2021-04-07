@@ -16,7 +16,6 @@ XYInspector::XYInspector() {
     
     drive.set_colour(0);
     kind_select.set_colour(0);
-    even_selector.set_colour(0);
 
     mod_depth.set_colour(2);
     mod_rate.set_colour(2);
@@ -24,23 +23,8 @@ XYInspector::XYInspector() {
     mod_settings.set_colour(2);
     
     kind_select.set_tooltips({"First kind", "Second kind"});
-    even_selector.set_tooltips({"Odd harmonics", "Even harmonics"});
     shape_select.set_tooltips({"Sine", "Square", "Triangle", "Sawtooth"});
     mod_settings.set_tooltips({"Sync to DAW tempo", "Enable/disable stereo"});
-    
-    even_selector.callback = [this](std::vector<int> state) {
-        
-        // Don't allow no selection
-        if(state[0] == 0 && state[1] == 0) {
-            even_selector.current_selection.setValue(last_state[0] == 0 ? 1 : 2);
-            last_state = state;
-        };
-        
-        last_state = state;
-        
-    };
-    
-    last_state = even_selector.state;
     
     
     drive.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
@@ -75,6 +59,8 @@ XYInspector::XYInspector() {
     };
     
     mod_depth.setRange(0.0f, 1.0f);
+    mod_depth.setSkewFactor(0.6);
+    
     mod_depth.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds) {
 
         auto shape = Graphs::sine_to_square(0.7, value, bounds.getWidth(), bounds.getHeight(), 3);
@@ -119,8 +105,8 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(mod_depth);
     settings.addAndMakeVisible(mod_rate);
     settings.addAndMakeVisible(delete_slider);
-    settings.addAndMakeVisible(even_selector);
     
+    mod_rate.setSkewFactor(0.6);
     
     mod_settings.callback = [this](std::vector<int> state) {
         if(state[0]) {
@@ -132,6 +118,10 @@ XYInspector::XYInspector() {
     };
    
     set_selection(nullptr);
+}
+
+void XYInspector::allow_stereo(bool allow_stereo) {
+    mod_settings.buttons[1]->setEnabled(allow_stereo);
 }
 
 void XYInspector::resized()
@@ -146,8 +136,7 @@ void XYInspector::resized()
     enabled_button.setBounds(0, 0, getWidth() - item_height, item_height);
     delete_slider.setBounds(getWidth() - item_height - 1, 0, item_height, item_height);
     
-    even_selector.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 3.0f, 20);
-    kind_select.setBounds(x_pos + item_width / 2 + 2, 35, item_width / 3.0f, 20);
+    kind_select.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 1.5f, 20);
     
     drive.setBounds(x_pos, 70, item_width, item_height);
 
@@ -187,8 +176,6 @@ void XYInspector::attach_to_tree(ValueTree tree)
 {
     current_tree = tree;
     drive.getValueObject().referTo(tree.getPropertyAsValue("Drive", nullptr));
-    
-    even_selector.getValueObject().referTo(tree.getPropertyAsValue("Even", nullptr));
     
     shape_select.getValueObject().referTo(tree.getPropertyAsValue("ModShape", nullptr));
     kind_select.getValueObject().referTo(tree.getPropertyAsValue("Kind", nullptr));

@@ -23,8 +23,8 @@ struct XYInspector : public Component
     
     void attach_to_tree(ValueTree tree);
     
-    std::vector<int> last_state;
-
+    void allow_stereo(bool allow_stereo);
+    
     ValueTree current_tree;
     SafePointer<XYSlider> selection = nullptr;
     
@@ -38,7 +38,6 @@ struct XYInspector : public Component
     MultipleSelectorComponent shape_select = MultipleSelectorComponent({"SIN", "TRI", "SQR", "SAW", });
     
     MultipleSelectorComponent mod_settings = MultipleSelectorComponent({"SYNC", "STEREO"});
-    MultipleSelectorComponent even_selector = MultipleSelectorComponent({"1", "2"});
     
     TextButton enabled_button = TextButton("E");
     

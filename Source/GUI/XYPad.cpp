@@ -29,7 +29,10 @@ XYPad::XYPad(ValueTree parent_tree)
         pad.addAndMakeVisible(slider);
         slider->init_valuetree();
         
+        new_slider.setEnabled(pad_tree.getNumChildren() < 5);
     };
+    
+    
     
     pad_tree.addListener(this);
     
@@ -75,24 +78,20 @@ void XYPad::set_selection(XYSlider* slider)
     selection = slider;
     inspector.set_selection(slider);
     update_callback(slider);
-    
 }
 
 
 void XYPad::valueTreeChildRemoved (ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) {
     inspector.set_selection(nullptr);
+    new_slider.setEnabled(pad_tree.getNumChildren() < 5);
     sliders.remove(indexFromWhichChildWasRemoved);
-    
 }
 
 void XYPad::update_tree(ValueTree tree) {
-    
     sliders.clear();
     
     pad_tree = tree;
     pad_tree.addListener(this);
-    
-
     
     for(auto child : pad_tree) {
         auto* slider = sliders.add(new XYSlider(child));
@@ -107,10 +106,8 @@ void XYPad::update_tree(ValueTree tree) {
         slider->init_valuetree();
 
     }
-}
-
-void XYPad::valueTreeRedirected (ValueTree& treeWhichHasBeenChanged) {
-    std::cout << "check" << std::endl;
+    
+    new_slider.setEnabled(pad_tree.getNumChildren() < 5);
 }
 
 XYSlider* XYPad::get_selection()

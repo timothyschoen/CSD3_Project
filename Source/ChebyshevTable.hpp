@@ -40,8 +40,6 @@ using DistortionState = std::tuple<
     float,  // Polynomial order
     float,  // Gain
     float,  // Scaling
-    bool,   // Enable odd harmonics
-    bool,   // Enable even harmonics
     float,  // Modulation frequency
     float,  // Modulation Depth
     int,     // Modulation shape (binary flag)
@@ -54,25 +52,6 @@ class ChebyshevTable
 public:
     //==============================================================================
     
-    bool enabled = true, kind = false;;
-    
-    float poly_order, gain, scaling;
-    
-    SmoothedValue<float> smoothed_gain, smoothed_scaling, smoothed_order;
-    
-    bool odd = true, even = true;
-    
-    float mod_freq = 2.0f;
-    float mod_depth = 0.25;
-    int mod_shape = 0;
-    bool lfo_stereo = false, lfo_sync = false;
-    
-    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
-    float sample_rate;
-    int num_channels;
-    
-    SequenceLFO lfo;
-
     DistortionState get_state();
     
     void set_state(const DistortionState& state);
@@ -83,22 +62,39 @@ public:
     
     void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude);
     
-    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
-    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
-
-    
     void set_mod_depth(float depth);
     void set_mod_rate(float rate);
     void set_mod_shape(int shape_flag);
     
-    void set_stereo(bool stereo);
     
-    void set_even(bool enable_even);
-    void set_odd(bool enable_odd);
+    void set_enabled(bool enabled);
+    void set_stereo(bool stereo);
     
     void set_table(float order, float gain, bool second_kind = false);
     
     void set_sync(bool sync);
     void sync_with_playhead(AudioPlayHead* playhead);
 
+private:
+
+    SequenceLFO lfo;
+    
+    bool enabled = true, kind = false;
+    bool lfo_stereo = false, lfo_sync = false;
+    
+    float poly_order, gain, scaling;
+    
+    float mod_freq = 2.0f;
+    float mod_depth = 0.25;
+    int mod_shape = 0;
+    
+    float sample_rate;
+    int num_channels;
+    
+    SmoothedValue<float> smoothed_gain, smoothed_scaling, smoothed_order;
+
+    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
+    
+    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
+    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
 };

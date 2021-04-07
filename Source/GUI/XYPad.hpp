@@ -31,8 +31,6 @@ struct XYPad : public Component, public ValueTree::Listener
     
     void valueTreeChildRemoved (ValueTree &parentTree, ValueTree &childWhichHasBeenRemoved, int indexFromWhichChildWasRemoved) override;
     
-    void valueTreeRedirected (ValueTree& treeWhichHasBeenChanged) override;
-
     void update_tree(ValueTree tree);
     
     XYSlider* get_selection();

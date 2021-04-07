@@ -77,7 +77,6 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
         
         layout.add (std::make_unique<AudioParameterFloat> (ID + "Drive", ID + "Distortion Shape", 0, 1, 0.5f));
         layout.add (std::make_unique<AudioParameterBool> (ID + "Kind", ID + "Kind", 0));
-        layout.add (std::make_unique<AudioParameterInt> (ID + "Even", ID + "Even", 0, 3, 3));
         layout.add (std::make_unique<AudioParameterInt> (ID + "ModShape", ID + "Modulation Shape", 0, 15, 0));
         layout.add (std::make_unique<AudioParameterFloat> (ID + "ModDepth", ID + "Modulation Depth", 0, 1, 1.0f));
         layout.add (std::make_unique<AudioParameterFloat> (ID + "ModRate", ID + "Modulation Rate", 1, 8, 1.0f));
@@ -155,9 +154,7 @@ void ZirconAudioProcessor::update_bands(int freq_range_overlap, bool reset)
         noise_filters.clear();
     }
     
-    
-    int old_num_bands = reset ? 0 : num_bands;
-    
+
     freq_range_overlap += 1;
     
     if(freq_range_overlap == 1) {
@@ -172,14 +169,14 @@ void ZirconAudioProcessor::update_bands(int freq_range_overlap, bool reset)
     else {
         // use gammatone bands
         filter_bank.reset(new GammatoneFilterBank(oversampled_spec));
-        const float num_options[2] = {-0.8, 0.0};
+        const float num_options[2] = {-1.1, -0.4};
         num_bands = static_cast<GammatoneFilterBank*>(filter_bank.get())->init_with_overlap(20, sample_rate / 2.0f, num_options[freq_range_overlap - 2]);
     }
     
     
-    int num_channels = getTotalNumInputChannels();
+    juce::uint32 num_channels = getTotalNumOutputChannels();
     
-    dsp::ProcessSpec spec = {sample_rate * oversample_factor, (juce::uint32)block_size * oversample_factor, (juce::uint32)getTotalNumInputChannels()};
+    dsp::ProcessSpec spec = {sample_rate * oversample_factor, (juce::uint32)block_size * oversample_factor, num_channels};
     
     hilbert.reset(new HilbertAmplitude(spec, num_bands, oversample_factor));
     
@@ -218,7 +215,7 @@ void ZirconAudioProcessor::update_bands(int freq_range_overlap, bool reset)
     
     tone_block = dsp::AudioBlock<float>(tone_data, 1, block_size * oversample_factor);
     saturation_block = dsp::AudioBlock<float>(saturation_data, 1, block_size * oversample_factor);
-    gain_block = dsp::AudioBlock<float>(gain_data, 2, block_size * oversample_factor);
+    gain_block = dsp::AudioBlock<float>(gain_data, num_channels, block_size * oversample_factor);
     
     for(int i = 0; i < num_bands; i++) {
         split_bands[i] = dsp::AudioBlock<float>(band_data[i], num_channels, block_size * oversample_factor);
@@ -266,14 +263,14 @@ void ZirconAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     block_size = samplesPerBlock;
     sample_rate = sampleRate;
     
-    last_spec = {sample_rate, (juce::uint32)block_size, (juce::uint32)getTotalNumInputChannels()};
+    last_spec = {sample_rate, (juce::uint32)block_size, (juce::uint32)getTotalNumOutputChannels()};
     
     set_oversample_rate(1 << (int)main_tree.getProperty("Quality"));
 }
 
 void ZirconAudioProcessor::set_oversample_rate(int new_oversample_factor)
 {
-    int num_channels = getTotalNumInputChannels();
+    int num_channels = getTotalNumOutputChannels();
     oversample_factor = new_oversample_factor;
     
     oversampler.reset(new dsp::Oversampling<float>(num_channels, std::log2(oversample_factor), dsp::Oversampling<float>::filterHalfBandFIREquiripple));
@@ -308,29 +305,25 @@ void ZirconAudioProcessor::releaseResources()
     // spare memory, etc.
 }
 
-#ifndef JucePlugin_PreferredChannelConfigurations
 bool ZirconAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-#if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-#else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
+
+    if (layouts.getMainOutputChannelSet() == AudioChannelSet::mono())
+    {
+        // Mono-to-mono
+        if (layouts.getMainInputChannelSet() == AudioChannelSet::mono())
+            return true;
+    }
+    else if (layouts.getMainOutputChannelSet() == AudioChannelSet::stereo())
+    {
+        // Mono-to-stereo OR stereo-to-stereo
+        if ((layouts.getMainInputChannelSet() == AudioChannelSet::mono()) ||
+                (layouts.getMainInputChannelSet() == AudioChannelSet::stereo()))
+            return true;
+    }
     
-    // This checks if the input layout matches the output layout
-#if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-#endif
-    
-    return true;
-#endif
+    return false;
 }
-#endif
 
 void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
@@ -349,7 +342,12 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         }
     }
     
+    
     dsp::AudioBlock<float> in_block(buffer);
+
+    if(getTotalNumInputChannels() < getTotalNumOutputChannels()) {
+        in_block.getSingleChannelBlock(1).copyFrom(in_block.getSingleChannelBlock(0));
+    }
     
     dsp::AudioBlock<float> oversampled = oversampler->processSamplesUp(in_block);
     
@@ -357,13 +355,12 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     tone_block.fill(0.2f * sample_rate);
     tone_block *= tone_cutoff;
     
-    gain_block.fill(heavy_mode ? 1.4f : 0.8f);
+    gain_block.fill(heavy_mode ? 1.0f : 0.5f);
     gain_block *= gain;
     
     saturation_block.fill(1.0f);
     saturation_block *= saturation;
 
-    
     for(int ch = 0; ch < oversampled.getNumChannels(); ch++) {
         auto* channel_ptr = oversampled.getChannelPointer(ch);
         for(int n = 0; n < oversampled.getNumSamples(); n++) {
@@ -452,15 +449,9 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
                 set_harmonic(slider_idx, shift, gain, kind);
             });
         }
-        else if(property == Identifier("Even")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_odd((int)value & 1);
-                chebyshev_distortions[slider_idx]->set_even((int)value & 2);
-            });
-        }
         else if(property == Identifier("ModDepth")) {
             queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_mod_depth(value * 5.0f);
+                chebyshev_distortions[slider_idx]->set_mod_depth(value * 4.0f);
             });
         }
         else if(property == Identifier("ModSettings")) {
@@ -482,7 +473,7 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
         }
         else if(property == Identifier("Enabled")) {
             queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->enabled = value;
+                chebyshev_distortions[slider_idx]->set_enabled((bool)value);
             });
         }
         else if(property == Identifier("Drive")) {

@@ -33,7 +33,6 @@ void XYSlider::init_valuetree()
         slider_tree.setProperty("Y", position_values.second, nullptr);
         slider_tree.setProperty("Enabled", true, nullptr);
         slider_tree.setProperty("Kind", 0, nullptr);
-        slider_tree.setProperty("Even", 3, nullptr);
         slider_tree.setProperty("ModShape", 0, nullptr);
         slider_tree.setProperty("ModDepth", 0.1, nullptr);
         slider_tree.setProperty("ModRate", 5.0f, nullptr);
@@ -45,7 +44,6 @@ void XYSlider::init_valuetree()
         slider_tree.sendPropertyChangeMessage("X");
         slider_tree.sendPropertyChangeMessage("Y");
         slider_tree.sendPropertyChangeMessage("Kind");
-        slider_tree.sendPropertyChangeMessage("Even");
         slider_tree.sendPropertyChangeMessage("Drive");
         slider_tree.sendPropertyChangeMessage("ModRate");
         slider_tree.sendPropertyChangeMessage("ModDepth");

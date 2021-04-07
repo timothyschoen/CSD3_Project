@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Filterbanks/GammatoneFilterBank.h"
+#include "Filterbanks/GammatoneFilterBank.hpp"
 #include "Filterbanks/ResonBands.hpp"
 #include "../Libraries/gammatone/filterbank.hpp"
 #include "concurrentqueue.hpp"

@@ -74,17 +74,17 @@ ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float 
     
     smoothed_order_buffer = dsp::AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
     smoothed_gain_buffer = dsp::AudioBlock<float>(smoothed_gain_data, 1, spec.maximumBlockSize);
-    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, 2, spec.maximumBlockSize);
-    clean_buffer = dsp::AudioBlock<float>(clean_data, 2, spec.maximumBlockSize);
-    temp_buffer = dsp::AudioBlock<float>(temp_data, 2, spec.maximumBlockSize);
+    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
+    clean_buffer = dsp::AudioBlock<float>(clean_data, num_channels, spec.maximumBlockSize);
+    temp_buffer = dsp::AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
 }
 
 DistortionState ChebyshevTable::get_state() {
-    return {enabled, kind, poly_order, gain, scaling, odd, even, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo};
+    return {enabled, kind, poly_order, gain, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo};
 }
 
 void ChebyshevTable::set_state(const DistortionState& state) {
-    std::tie(enabled, kind, poly_order, gain, scaling, odd, even, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo) = state;
+    std::tie(enabled, kind, poly_order, gain, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo) = state;
 
     current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
     
@@ -106,6 +106,11 @@ void ChebyshevTable::set_scaling(float amount)
     smoothed_scaling.setTargetValue(amount);
     scaling = amount;
     
+}
+
+void ChebyshevTable::set_enabled(bool is_enabled)
+{
+    enabled = is_enabled;
 }
 
 void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude) {
@@ -157,13 +162,7 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
                 int second_order = first_order + 1;
                 
                 float amp = (order - (float)first_order);
-                
-                if(even != odd) {
-                    
-                    first_order = first_order * 2 + odd;
-                    second_order = second_order * 2 + odd;
-                }
-    
+
                 float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0f - amp);
                 float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
                 
@@ -215,14 +214,6 @@ void ChebyshevTable::set_table(float order, float g, bool second_kind)
     smoothed_order.setTargetValue(order);
     
     current_table = second_kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
-}
-
-void ChebyshevTable::set_even(bool enable_even) {
-    even = enable_even;
-}
-
-void ChebyshevTable::set_odd(bool enable_odd) {
-    odd = enable_odd;
 }
 
 void ChebyshevTable::sync_with_playhead(AudioPlayHead* playhead) {

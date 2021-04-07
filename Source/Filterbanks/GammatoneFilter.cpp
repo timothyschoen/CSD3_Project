@@ -30,7 +30,7 @@
 #define _USE_MATH_DEFINES // TODO: Test in windows! Might also be problematic for other platforms??
 #include <JuceHeader.h>
 #include <cmath>
-#include "GammatoneFilter.h"
+#include "GammatoneFilter.hpp"
 
 #define M_TWO_PI (2 * M_PI)
 
