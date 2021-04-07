@@ -26,7 +26,7 @@ SequenceLFO::SequenceLFO(const dsp::ProcessSpec& spec) {
     
     // Sine shape
     waveshapes[0] = [this](float x) {
-        return dsp::FastMathApproximations::sin((x * 2.0f * M_PI) - M_PI);
+        return dsp::FastMathApproximations::sin((x * MathConstants<float>::twoPi) - MathConstants<float>::pi);
     };
     
     // Square shape

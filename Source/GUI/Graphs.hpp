@@ -21,7 +21,7 @@ struct Graphs
         shape.lineTo(start_point, half_height);
         
         for(int x = start_point; x < end_point; x += 1) {
-            float y = dsp::FastMathApproximations::sin(((x - (float)start_point) / sine_width) * 2.0f * M_PI);
+            float y = dsp::FastMathApproximations::sin(((x - (float)start_point) / sine_width) * MathConstants<float>::twoPi);
             
             y = dsp::FastMathApproximations::tanh(y / scalar_value);
             
@@ -62,7 +62,7 @@ struct Graphs
             float y;
             // Sine
             if(waveshape == 0.0f) {
-                y = dsp::FastMathApproximations::sin(phase * 2.0f * M_PI);
+                y = dsp::FastMathApproximations::sin(phase * MathConstants<float>::twoPi);
             }
             // Square
             else if(waveshape == 1.0f) {

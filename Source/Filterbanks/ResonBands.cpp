@@ -32,7 +32,7 @@ void ResonBands::create_bands(int n_bands, std::pair<float, float> range, float 
     float q = (std::get<0>(filters[0]) / ((std::get<0>(filters[1]) - std::get<0>(filters[0])) / 2.0f) + 1.0f) * (1.0f / band_width);
     
     for(int i = 0; i < num_bands; i++) {
-        float twopi_over_sr = (2.0f * M_PI) / sample_rate;
+        float twopi_over_sr = MathConstants<float>::twoPi / sample_rate;
         auto& [cutoff, gain, r, r_scale, c1, c2] = filters[i];
         
         gain = g;

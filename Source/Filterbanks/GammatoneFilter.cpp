@@ -32,10 +32,6 @@
 #include <cmath>
 #include "GammatoneFilter.hpp"
 
-#define M_TWO_PI (2 * M_PI)
-
-
-
 //////////////////////////////////////////////
 GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_order, float center_freq, float band_width)
 {
@@ -56,12 +52,12 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     f0 = center_freq;
     sample_rate = rate;
     
-    double phase_increment = f0 * M_TWO_PI / sample_rate;
+    double phase_increment = f0 * MathConstants<float>::twoPi / sample_rate;
     cos_phase_increment = cos(phase_increment);
     sin_phase_increment = sin(phase_increment);
     
     b = band_width / an;
-    eq_constant = 1.0f - exp(-M_TWO_PI * b / sample_rate);
+    eq_constant = 1.0f - exp(-MathConstants<float>::twoPi * b / sample_rate);
     
     cos_phase.resize(block_size, 0.0f);
     sin_phase.resize(block_size, 0.0f);
