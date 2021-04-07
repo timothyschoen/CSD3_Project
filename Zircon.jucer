@@ -7,48 +7,52 @@
   <MAINGROUP id="wQQPog" name="Zircon">
     <GROUP id="{706E768B-8E1D-B042-EBAE-21AE83FE59D0}" name="Source">
       <GROUP id="{557A5C25-ED25-57CA-B449-A5FDDA2F50CB}" name="Filterbanks">
-        <FILE id="HS2EZ7" name="Filterbank.hpp" compile="0" resource="0" file="Source/Filterbanks/Filterbank.hpp"/>
-        <FILE id="nulTvL" name="GammatoneFilter.cpp" compile="1" resource="0"
+        <FILE id="x0sZpp" name="Filterbank.hpp" compile="0" resource="0" file="Source/Filterbanks/Filterbank.hpp"/>
+        <FILE id="zZmf3S" name="GammatoneFilter.cpp" compile="1" resource="0"
               file="Source/Filterbanks/GammatoneFilter.cpp"/>
-        <FILE id="dE2C2o" name="GammatoneFilter.h" compile="0" resource="0"
-              file="Source/Filterbanks/GammatoneFilter.h"/>
-        <FILE id="UjROvn" name="GammatoneFilterBank.cpp" compile="1" resource="0"
+        <FILE id="X7U6KH" name="GammatoneFilter.hpp" compile="0" resource="0"
+              file="Source/Filterbanks/GammatoneFilter.hpp"/>
+        <FILE id="wvi6Wi" name="GammatoneFilterBank.cpp" compile="1" resource="0"
               file="Source/Filterbanks/GammatoneFilterBank.cpp"/>
-        <FILE id="A8hBW0" name="GammatoneFilterBank.h" compile="0" resource="0"
-              file="Source/Filterbanks/GammatoneFilterBank.h"/>
-        <FILE id="kABCUU" name="ResonBands.hpp" compile="0" resource="0" file="Source/Filterbanks/ResonBands.hpp"/>
+        <FILE id="VWWUcr" name="GammatoneFilterBank.hpp" compile="0" resource="0"
+              file="Source/Filterbanks/GammatoneFilterBank.hpp"/>
+        <FILE id="DxduQk" name="ResonBands.cpp" compile="1" resource="0" file="Source/Filterbanks/ResonBands.cpp"/>
+        <FILE id="kNoJVG" name="ResonBands.hpp" compile="0" resource="0" file="Source/Filterbanks/ResonBands.hpp"/>
       </GROUP>
-      <GROUP id="{C670F35E-8459-2000-3255-8DDD91DBE4AE}" name="GUI">
-        <FILE id="HD5ZHw" name="AnimatedSlider.hpp" compile="0" resource="0"
+      <GROUP id="{4D0DF994-1428-1256-6D4D-4C122A41805B}" name="GUI">
+        <FILE id="j1vEN8" name="AnimatedSlider.hpp" compile="0" resource="0"
               file="Source/GUI/AnimatedSlider.hpp"/>
-        <FILE id="wJBjr8" name="Graphs.hpp" compile="0" resource="0" file="Source/GUI/Graphs.hpp"/>
-        <FILE id="EVpa8F" name="LookAndFeel.hpp" compile="0" resource="0" file="Source/GUI/LookAndFeel.hpp"/>
-        <FILE id="LUPNYM" name="SelectorComponent.hpp" compile="0" resource="0"
+        <FILE id="Y72sEO" name="Graphs.hpp" compile="0" resource="0" file="Source/GUI/Graphs.hpp"/>
+        <FILE id="aorqSe" name="LookAndFeel.hpp" compile="0" resource="0" file="Source/GUI/LookAndFeel.hpp"/>
+        <FILE id="IOPH5l" name="SelectorComponent.hpp" compile="0" resource="0"
               file="Source/GUI/SelectorComponent.hpp"/>
-        <FILE id="GMYBZL" name="XYInspector.cpp" compile="1" resource="0" file="Source/GUI/XYInspector.cpp"/>
-        <FILE id="eKVcPq" name="XYInspector.hpp" compile="0" resource="0" file="Source/GUI/XYInspector.hpp"/>
-        <FILE id="NOl6TM" name="XYPad.cpp" compile="1" resource="0" file="Source/GUI/XYPad.cpp"/>
-        <FILE id="jpMf5F" name="XYPad.hpp" compile="0" resource="0" file="Source/GUI/XYPad.hpp"/>
-        <FILE id="XawCOs" name="XYSlider.cpp" compile="1" resource="0" file="Source/GUI/XYSlider.cpp"/>
-        <FILE id="v5K7LK" name="XYSlider.hpp" compile="0" resource="0" file="Source/GUI/XYSlider.hpp"/>
+        <FILE id="bM0Ynz" name="XYInspector.cpp" compile="1" resource="0" file="Source/GUI/XYInspector.cpp"/>
+        <FILE id="Kzb7B2" name="XYInspector.hpp" compile="0" resource="0" file="Source/GUI/XYInspector.hpp"/>
+        <FILE id="UD5ToA" name="XYPad.cpp" compile="1" resource="0" file="Source/GUI/XYPad.cpp"/>
+        <FILE id="euIuJz" name="XYPad.hpp" compile="0" resource="0" file="Source/GUI/XYPad.hpp"/>
+        <FILE id="XLtMm5" name="XYSlider.cpp" compile="1" resource="0" file="Source/GUI/XYSlider.cpp"/>
+        <FILE id="NWotkI" name="XYSlider.hpp" compile="0" resource="0" file="Source/GUI/XYSlider.hpp"/>
       </GROUP>
-      <FILE id="NZ5yZo" name="ChebyshevTable.cpp" compile="1" resource="0"
+      <FILE id="uBeUsM" name="ChebyshevTable.cpp" compile="1" resource="0"
             file="Source/ChebyshevTable.cpp"/>
-      <FILE id="Vt27pP" name="ChebyshevTable.hpp" compile="0" resource="0"
+      <FILE id="E4msii" name="ChebyshevTable.hpp" compile="0" resource="0"
             file="Source/ChebyshevTable.hpp"/>
-      <FILE id="GSC3Ap" name="concurrentqueue.hpp" compile="0" resource="0"
+      <FILE id="UhOsnr" name="concurrentqueue.hpp" compile="0" resource="0"
             file="Source/concurrentqueue.hpp"/>
-      <FILE id="p3gRGL" name="HilbertAmplitude.hpp" compile="0" resource="0"
+      <FILE id="sO5OPc" name="HilbertAmplitude.cpp" compile="1" resource="0"
+            file="Source/HilbertAmplitude.cpp"/>
+      <FILE id="MkIKJC" name="HilbertAmplitude.hpp" compile="0" resource="0"
             file="Source/HilbertAmplitude.hpp"/>
-      <FILE id="gWh1La" name="PluginEditor.cpp" compile="1" resource="0"
+      <FILE id="ZHYOH8" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="g0mM0V" name="PluginEditor.hpp" compile="0" resource="0"
+      <FILE id="ekMfHV" name="PluginEditor.hpp" compile="0" resource="0"
             file="Source/PluginEditor.hpp"/>
-      <FILE id="k2TiDk" name="PluginProcessor.cpp" compile="1" resource="0"
+      <FILE id="OFMRui" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="FuXzC4" name="PluginProcessor.hpp" compile="0" resource="0"
+      <FILE id="XdtkYs" name="PluginProcessor.hpp" compile="0" resource="0"
             file="Source/PluginProcessor.hpp"/>
-      <FILE id="uBaxpZ" name="SequenceLFO.hpp" compile="0" resource="0" file="Source/SequenceLFO.hpp"/>
+      <FILE id="vF761H" name="SequenceLFO.cpp" compile="1" resource="0" file="Source/SequenceLFO.cpp"/>
+      <FILE id="OZT4HZ" name="SequenceLFO.hpp" compile="0" resource="0" file="Source/SequenceLFO.hpp"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
