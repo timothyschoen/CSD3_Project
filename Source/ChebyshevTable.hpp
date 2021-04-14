@@ -110,6 +110,6 @@ private:
 
     std::array<LookupTableTransform<float>, num_polynomials>* current_table;
     
-    AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_volume_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
-    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_volume_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
+    AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_volume_buffer, smoothed_scaling_buffer, temp_buffer;
+    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_volume_data, smoothed_order_data, smoothed_scaling_data, temp_data;
 };

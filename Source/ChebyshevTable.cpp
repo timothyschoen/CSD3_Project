@@ -16,12 +16,9 @@ bool ChebyshevFactory::fillTables() {
         
         first_tables[i].initialise([order](float x) mutable {
             if(x == 0.0f) return 0.0f;
-            
-            if(order == 0) return (float)tanh(x * 2.0f);
+            if(order == 0) return 0.0f;
                         
-            
             float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
-            
             float y = cos(acos(x) * order) + offset;
             
             jassert(std::isfinite(y));
@@ -39,10 +36,8 @@ bool ChebyshevFactory::fillTables() {
             if(x == 1.0f) x -= 1e-5;
             
             float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
-            
             float y = sin((order + 1.0f) * acos(x)) / sin(acos(x)) + offset;
 
-            
             jassert(std::isfinite(y));
             
             return y;
@@ -80,7 +75,6 @@ ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, float order, float new_v
     smoothed_order_buffer = AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
     smoothed_volume_buffer = AudioBlock<float>(smoothed_volume_data, 1, spec.maximumBlockSize);
     smoothed_scaling_buffer = AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
-    clean_buffer = AudioBlock<float>(clean_data, num_channels, spec.maximumBlockSize);
     temp_buffer = AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
 }
 
@@ -137,9 +131,6 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
     
     smoothed_scaling_buffer.fill(1.0f);
     smoothed_scaling_buffer *= smoothed_scaling;
-   
-    clean_buffer.fill(1.0f);
-    clean_buffer -= smoothed_scaling_buffer;
     
     auto* smoothed_order_ptr = smoothed_order_buffer.getChannelPointer(0);
     
@@ -154,6 +145,7 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
         
         // Get and apply scaling
         temp_buffer.copyFrom(smoothed_scaling_buffer);
+        
         buffer *= temp_buffer.getSubBlock(0, num_samples);
         
         for(int ch = 0; ch < buffer.getNumChannels(); ch++) {
@@ -167,7 +159,8 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
                 // Calculate final polynomial order
                 float order = smoothed_order_ptr[n] + mod_source;
                 
-                order = std::clamp(order, 0.0f, 20.0f);
+                // 0th order polynomial is silence so start at 1
+                order = std::clamp(order + 1.0f, 1.0f, 20.0f);
                 
                 // Find neighboring integer polynomials
                 int first_order = order;
@@ -197,8 +190,6 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
         
         output[b] += final_buffer;
     }
-    
-    
 }
 void ChebyshevTable::set_high(bool low_mode) {
     high_mode = !low_mode;
@@ -224,7 +215,8 @@ void ChebyshevTable::set_centre_freqs(std::vector<float> centre_freqs) {
         noise_filters[b].prepare(process_spec);
         noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
         noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
-        noise_filters[b].setResonance(1.0f / sqrt(2));
+        //noise_filters[b].setResonance(1.0f / sqrt(2));
+        noise_filters[b].setResonance(1.2f);
     }
 }
 

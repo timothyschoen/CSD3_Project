@@ -26,6 +26,9 @@ XYInspector::XYInspector() {
     shape_select.set_tooltips({"Sine", "Square", "Triangle", "Sawtooth"});
     mod_settings.set_tooltips({"Sync to DAW tempo", "Enable/disable stereo"});
     
+    mod_depth.setTooltip("Modulation Depth");
+    mod_rate.setTooltip("Modulation Frequency");
+    drive.setTooltip("Drive");
     
     drive.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(1.0f - value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);

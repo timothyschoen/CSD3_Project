@@ -165,7 +165,7 @@ void ZirconAudioProcessor::set_num_bands(int freq_range_overlap, bool reset)
     else {
         // use gammatone bands
         filter_bank.reset(new GammatoneFilterBank(oversampled_spec));
-        num_bands = static_cast<GammatoneFilterBank*>(filter_bank.get())->init_with_overlap(60.0f, 10000.0f, -1.1);
+        num_bands = static_cast<GammatoneFilterBank*>(filter_bank.get())->init_with_overlap(60.0f, 10000.0f, -0.9);
     }
     
     juce::uint32 num_channels = getTotalNumOutputChannels();

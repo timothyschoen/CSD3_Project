@@ -15,7 +15,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (655, 345);
+    setSize (655, 355);
     
     setLookAndFeel(&lnf);
 
@@ -161,17 +161,17 @@ void ZirconAudioProcessorEditor::paint (juce::Graphics& g)
 
 void ZirconAudioProcessorEditor::resized()
 {
-    nfilter_selector.setBounds(20, 265, 80, 24);
-    quality_selector.setBounds(20, 300, 80, 24);
+    nfilter_selector.setBounds(20, 270, 80, 24);
+    quality_selector.setBounds(20, 305, 80, 24);
     
-    wet_slider.setBounds(120, 265, 190, 24);
-    tone_slider.setBounds(120, 300, 190, 24);
+    wet_slider.setBounds(120, 270, 190, 24);
+    tone_slider.setBounds(120, 305, 190, 24);
     
-    gain_slider.setBounds(335, 265, 190, 24);
-    volume_slider.setBounds(335, 300, 190, 24);
+    gain_slider.setBounds(335, 270, 190, 24);
+    volume_slider.setBounds(335, 305, 190, 24);
     
-    high_button.setBounds(getWidth() - 100, 265, 80, 24);
-    smooth_button.setBounds(getWidth() - 100, 300, 80, 24);
+    high_button.setBounds(getWidth() - 100, 270, 80, 24);
+    smooth_button.setBounds(getWidth() - 100, 305, 80, 24);
     
-    xy_pad.setBounds(0, 0, 655, 245);
+    xy_pad.setBounds(0, 0, 655, 255);
 }
