@@ -25,8 +25,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     addAndMakeVisible(volume_slider);
     addAndMakeVisible(wet_slider);
     
+    addAndMakeVisible(high_button);
     addAndMakeVisible(smooth_button);
-    addAndMakeVisible(heavy_button);
     
     addAndMakeVisible(xy_pad);
     
@@ -50,8 +50,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     tone_slider.setTooltip("Tone");
     volume_slider.setTooltip("Volume");
     
+    high_button.set_tooltips({"High mode"});
     smooth_button.set_tooltips({"Smooth mode"});
-    heavy_button.set_tooltips({"Heavy mode"});
     
     tone_slider.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::draw_filter(value, 0.0f, bounds.getWidth(), bounds.getHeight(), 0, 0.5);
@@ -105,12 +105,12 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     addAndMakeVisible(nfilter_selector);
     addAndMakeVisible(quality_selector);
     
-    nfilter_selector.set_tooltips({"Filterbank density (15 filters)", "Filterbank density (25 filters)", "Filterbank density (35 filters)"});
+    nfilter_selector.set_tooltips({"Filterbank density (15 filters)", "Filterbank density (25 filters)"});
     quality_selector.set_tooltips({"Oversampling (1x)", "Oversampling (2x)", "Oversampling (4x)"});
     
     nfilter_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
+    high_button.getValueObject().referTo(main_tree.getPropertyAsValue("High", nullptr));
     smooth_button.getValueObject().referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
-    heavy_button.getValueObject().referTo(main_tree.getPropertyAsValue("Heavy", nullptr));
     quality_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Quality", nullptr));
     
     tone_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Tone", nullptr));
@@ -122,12 +122,12 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
    
     nfilter_selector.set_custom_draw(SelectorButton::paint_filters);
     
-    smooth_button.callback = [this](int selection){
-        smooth_mode.setValue(selection);
+    high_button.callback = [this](int selection){
+        high_mode.setValue(selection);
     };
     
-    heavy_button.callback = [this](int selection){
-        heavy_mode.setValue(selection);
+    smooth_button.callback = [this](int selection){
+        smooth_mode.setValue(selection);
     };
     
     
@@ -138,8 +138,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     
     nfilter_selector.set_colour(0);
     quality_selector.set_colour(0);
+    high_button.set_colour(4);
     smooth_button.set_colour(4);
-    heavy_button.set_colour(4);
     
 }
 
@@ -170,8 +170,8 @@ void ZirconAudioProcessorEditor::resized()
     gain_slider.setBounds(335, 265, 190, 24);
     volume_slider.setBounds(335, 300, 190, 24);
     
-    smooth_button.setBounds(getWidth() - 100, 265, 80, 24);
-    heavy_button.setBounds(getWidth() - 100, 300, 80, 24);
+    high_button.setBounds(getWidth() - 100, 265, 80, 24);
+    smooth_button.setBounds(getWidth() - 100, 300, 80, 24);
     
     xy_pad.setBounds(0, 0, 655, 245);
 }

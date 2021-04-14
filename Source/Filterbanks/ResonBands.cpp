@@ -4,7 +4,7 @@
 #include "ResonBands.hpp"
 
 
-ResonBands::ResonBands(dsp::ProcessSpec& spec){
+ResonBands::ResonBands(ProcessSpec& spec){
     sample_rate = spec.sampleRate;
     num_channels = spec.numChannels;
 };
@@ -46,7 +46,7 @@ void ResonBands::create_bands(int n_bands, std::pair<float, float> range, float 
 }
 
 
-void ResonBands::process(const dsp::AudioBlock<float>& input, std::vector<dsp::AudioBlock<float>>& output) {
+void ResonBands::process(const AudioBlock<float>& input, std::vector<AudioBlock<float>>& output) {
     jassert(output.size() == num_bands);
     
     int num_samples = input.getNumSamples();

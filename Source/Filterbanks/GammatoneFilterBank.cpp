@@ -27,7 +27,7 @@
 
 #define GAMMATONE_FILTER_ORDER 4
 
-GammatoneFilterBank::GammatoneFilterBank(dsp::ProcessSpec& spec)
+GammatoneFilterBank::GammatoneFilterBank(ProcessSpec& spec)
 {
     
     num_channels = spec.numChannels;
@@ -109,7 +109,7 @@ int GammatoneFilterBank::get_num_filters()
 }
 
 
-void GammatoneFilterBank::process(const dsp::AudioBlock<float>& in_buffer, std::vector<dsp::AudioBlock<float>>& out_buffer)
+void GammatoneFilterBank::process(const AudioBlock<float>& in_buffer, std::vector<AudioBlock<float>>& out_buffer)
 {
     int size = (int)in_buffer.getNumSamples();
     

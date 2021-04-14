@@ -23,7 +23,7 @@ public:
     ~ZirconAudioProcessorEditor() override;
 
     
-    Value num_filters, smooth_mode, heavy_mode;
+    Value num_filters, high_mode, smooth_mode;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -39,15 +39,13 @@ private:
     // access the processor object that created it.
     ZirconAudioProcessor& audioProcessor;
     
-    
-    
     AnimatedSlider gain_slider, tone_slider, volume_slider, wet_slider;
     
-    SelectorComponent nfilter_selector = SelectorComponent({"20", "50", "70"});
+    SelectorComponent nfilter_selector = SelectorComponent({"12", "18"});
     SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});
 
+    SelectorComponent high_button = SelectorComponent({"High"});
     SelectorComponent smooth_button = SelectorComponent({"Smooth"});
-    SelectorComponent heavy_button = SelectorComponent({"Heavy"});
 
     Dark_LookAndFeel lnf;
     

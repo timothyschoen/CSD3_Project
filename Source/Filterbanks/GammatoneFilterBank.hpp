@@ -10,7 +10,7 @@ class GammatoneFilterBank final : public Filterbank
 {
 public:    
     
-    GammatoneFilterBank(dsp::ProcessSpec& spec);
+    GammatoneFilterBank(ProcessSpec& spec);
     
     ~GammatoneFilterBank();
     
@@ -21,9 +21,9 @@ public:
 
     void remove_filters();
 
-    int get_num_filters();
+    int get_num_filters() override;
     
-    void process(const dsp::AudioBlock<float>& in_buffer, std::vector<dsp::AudioBlock<float>>& out_buffer) override;
+    void process(const AudioBlock<float>& in_buffer, std::vector<AudioBlock<float>>& out_buffer) override;
     
     float get_centre_freq(int idx) override;
     

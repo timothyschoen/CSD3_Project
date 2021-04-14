@@ -9,7 +9,7 @@
 #include "SequenceLFO.hpp"
 
 
-SequenceLFO::SequenceLFO(const dsp::ProcessSpec& spec) {
+SequenceLFO::SequenceLFO(const ProcessSpec& spec) {
     sample_rate = spec.sampleRate;
     num_channels = spec.numChannels;
     
@@ -26,7 +26,7 @@ SequenceLFO::SequenceLFO(const dsp::ProcessSpec& spec) {
     
     // Sine shape
     waveshapes[0] = [this](float x) {
-        return dsp::FastMathApproximations::sin((x * MathConstants<float>::twoPi) - MathConstants<float>::pi);
+        return FastMathApproximations::sin((x * MathConstants<float>::twoPi) - MathConstants<float>::pi);
     };
     
     // Square shape
@@ -50,7 +50,7 @@ SequenceLFO::SequenceLFO(const dsp::ProcessSpec& spec) {
 
 
 
-void SequenceLFO::process(dsp::AudioBlock<float> output) {
+void SequenceLFO::process(AudioBlock<float> output) {
     if(!enabled) {
         output.clear();
         return;

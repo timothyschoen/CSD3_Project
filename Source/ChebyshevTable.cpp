@@ -53,43 +53,48 @@ bool ChebyshevFactory::fillTables() {
 }
 
 
-ChebyshevTable::ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind) :  lfo(spec)
+ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, float order, float new_volume, bool second_kind) :  lfo(spec)
 
 {
     
+    process_spec = spec;
+    
     sample_rate = spec.sampleRate;
     
-    set_table(order, gain, second_kind);
+    //set_table(order, volume, second_kind);
+    
+    set_order(order, second_kind);
+    set_volume(new_volume);
     
     num_channels = spec.numChannels;
     
     smoothed_order.reset(sample_rate, 0.02f);
-    smoothed_gain.reset(sample_rate, 0.02f);
+    smoothed_volume.reset(sample_rate, 0.02f);
     smoothed_scaling.reset(sample_rate, 0.02f);
 
     set_stereo(true);
     
-    buffer = dsp::AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
-    lfo_buffer = dsp::AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
+    buffer = AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
+    lfo_buffer = AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
     
-    smoothed_order_buffer = dsp::AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
-    smoothed_gain_buffer = dsp::AudioBlock<float>(smoothed_gain_data, 1, spec.maximumBlockSize);
-    smoothed_scaling_buffer = dsp::AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
-    clean_buffer = dsp::AudioBlock<float>(clean_data, num_channels, spec.maximumBlockSize);
-    temp_buffer = dsp::AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
+    smoothed_order_buffer = AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
+    smoothed_volume_buffer = AudioBlock<float>(smoothed_volume_data, 1, spec.maximumBlockSize);
+    smoothed_scaling_buffer = AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
+    clean_buffer = AudioBlock<float>(clean_data, num_channels, spec.maximumBlockSize);
+    temp_buffer = AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
 }
 
 DistortionState ChebyshevTable::get_state() {
-    return {enabled, kind, poly_order, gain, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo};
+    return {enabled, kind, poly_order, volume, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo, high_mode, filter_freqs};
 }
 
 void ChebyshevTable::set_state(const DistortionState& state) {
-    std::tie(enabled, kind, poly_order, gain, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo) = state;
+    std::tie(enabled, kind, poly_order, volume, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo, high_mode, filter_freqs) = state;
 
     current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
     
     smoothed_order.setCurrentAndTargetValue(poly_order);
-    smoothed_gain.setCurrentAndTargetValue(gain);
+    smoothed_volume.setCurrentAndTargetValue(volume);
     smoothed_scaling.setCurrentAndTargetValue(scaling);
 
     // Make sure state is also set for all LFOs
@@ -98,6 +103,8 @@ void ChebyshevTable::set_state(const DistortionState& state) {
     set_mod_shape(mod_shape);
     set_stereo(lfo_stereo);
     set_sync(lfo_sync);
+    
+    set_centre_freqs(filter_freqs);
 }
 
 
@@ -113,7 +120,7 @@ void ChebyshevTable::set_enabled(bool is_enabled)
     enabled = is_enabled;
 }
 
-void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude) {
+void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output) {
     
     int num_samples = input[0].getNumSamples();
     
@@ -121,11 +128,12 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
     auto subblock = lfo_buffer.getSubBlock(0, num_samples);
     lfo.process(subblock);
 
+    // Calculate smoothed parameters
     smoothed_order_buffer.fill(1.0f);
     smoothed_order_buffer *= smoothed_order;
     
-    smoothed_gain_buffer.fill(1.0f);
-    smoothed_gain_buffer *= smoothed_gain;
+    smoothed_volume_buffer.fill(1.0f);
+    smoothed_volume_buffer *= smoothed_volume;
     
     smoothed_scaling_buffer.fill(1.0f);
     smoothed_scaling_buffer *= smoothed_scaling;
@@ -136,53 +144,93 @@ void ChebyshevTable::process(std::vector<dsp::AudioBlock<float>>& input, std::ve
     auto* smoothed_order_ptr = smoothed_order_buffer.getChannelPointer(0);
     
     for(int b = 0; b < input.size(); b++) {
-            
-        if(!enabled) continue;
+        // Don't process the expected target region is above either nyquist or the human hearing limit!
+        if(!enabled || filter_freqs[b] * smoothed_order.getTargetValue() > std::min<float>(sample_rate / 2 - 1, 20000.0f)) {
+            output[b].fill(0.0f);
+            continue;
+        }
         
         buffer.copyFrom(input[b]);
         
+        // Get and apply scaling
         temp_buffer.copyFrom(smoothed_scaling_buffer);
-        temp_buffer *= amplitude[b];
-        temp_buffer += clean_buffer;
-        
-        buffer *= temp_buffer;
+        buffer *= temp_buffer.getSubBlock(0, num_samples);
         
         for(int ch = 0; ch < buffer.getNumChannels(); ch++) {
             auto channel_block = buffer.getSingleChannelBlock(ch);
             auto* channel_ptr = buffer.getChannelPointer(ch);
             
             for(int n = 0; n < num_samples; n++) {
+                // Get LFO value
                 float mod_source = lfo_buffer.getSample(ch, n);
                 
+                // Calculate final polynomial order
                 float order = smoothed_order_ptr[n] + mod_source;
                 
-                order = std::clamp(order, 0.0f, 12.0f);
+                order = std::clamp(order, 0.0f, 20.0f);
                 
+                // Find neighboring integer polynomials
                 int first_order = order;
                 int second_order = first_order + 1;
                 
-                float amp = (order - (float)first_order);
+                // Calculate mix
+                float amp = order - (float)first_order;
 
+                // Get values from wavetables and mix together
                 float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0f - amp);
                 float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
                 
                 channel_ptr[n] = (y1 + y2);
+                
+                jassert(std::isfinite(channel_ptr[n]));
             
             }
-            channel_block *= smoothed_gain_buffer;
+            // Apply smoothed polynomial volume (y-axis value)
+            channel_block *= smoothed_volume_buffer.getSubBlock(0, num_samples);
         }
         
-        output[b] += buffer;
+        // Noise filter:
+        // This filter is set to the expected output frequency range, which order * filter_freq
+        // Normally a bandpass filter, or a highpass filter in high mode
+        auto final_buffer = buffer.getSubBlock(0, num_samples);
+        noise_filters[b].process(ProcessContextReplacing<float>(final_buffer));
+        
+        output[b] += final_buffer;
     }
     
     
 }
+void ChebyshevTable::set_high(bool low_mode) {
+    high_mode = !low_mode;
+    
+    // Apply mode to filters
+    for(int b = 0; b < filter_freqs.size(); b++) {
+        float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
+        noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
+        noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+    }
+}
 
+void ChebyshevTable::set_centre_freqs(std::vector<float> centre_freqs) {
+    filter_freqs = centre_freqs;
+    
+    noise_filters.clear();
+    noise_filters.resize(centre_freqs.size());
+    
+    // Prepare filters at centre frequencies multiplied by polynomial order
+    for(int b = 0; b < filter_freqs.size(); b++) {
+        float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
+        noise_filters[b].reset();
+        noise_filters[b].prepare(process_spec);
+        noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
+        noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+        noise_filters[b].setResonance(1.0f / sqrt(2));
+    }
+}
 
 
 void ChebyshevTable::set_stereo(bool stereo) {
     lfo_stereo = stereo;
-    
     lfo.set_stereo(stereo);
 }
 
@@ -193,7 +241,6 @@ void ChebyshevTable::set_mod_depth(float depth) {
 
 void ChebyshevTable::set_mod_rate(float rate) {
     mod_freq = rate;
-    
     lfo.set_frequency(rate);
 }
 
@@ -202,16 +249,22 @@ void ChebyshevTable::set_mod_shape(int shape_flag) {
     lfo.set_voice(shape_flag);
 }
 
-void ChebyshevTable::set_table(float order, float g, bool second_kind)
-{
-    // Apply gain scaling
-    gain =  pow((g + 1.0f), 2.0f) - 1.0f;
-    
+void ChebyshevTable::set_volume(float new_volume) {
+    // Apply volume scaling
+    volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
+    smoothed_volume.setTargetValue(volume);
+}
+void ChebyshevTable::set_order(float order, bool second_kind) {
     kind = second_kind;
     poly_order = order;
     
-    smoothed_gain.setTargetValue(gain);
     smoothed_order.setTargetValue(order);
+    
+    for(int b = 0; b < filter_freqs.size(); b++) {
+        float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
+        noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
+        noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+    }
     
     current_table = second_kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
 }

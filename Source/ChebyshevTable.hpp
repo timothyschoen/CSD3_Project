@@ -13,15 +13,15 @@
 
 inline static const int num_polynomials = 40;
 
-class ChebyshevFactory : public dsp::LookupTableTransform<float>
+class ChebyshevFactory : public LookupTableTransform<float>
 {
     
 public:
     
     static bool fillTables();
     
-    inline static std::array<dsp::LookupTableTransform<float>, num_polynomials> first_tables;
-    inline static std::array<dsp::LookupTableTransform<float>, num_polynomials> second_tables;
+    inline static std::array<LookupTableTransform<float>, num_polynomials> first_tables;
+    inline static std::array<LookupTableTransform<float>, num_polynomials> second_tables;
     
     inline static bool initialised = fillTables();
     
@@ -44,7 +44,9 @@ using DistortionState = std::tuple<
     float,  // Modulation Depth
     int,     // Modulation shape (binary flag)
     bool,    // LFO Sync
-    bool    // LFO Stereo
+    bool,    // LFO Stereo
+    bool,    // Smooth mode
+    std::vector<float> // Filter frequencies
 >;
 
 class ChebyshevTable
@@ -56,11 +58,11 @@ public:
     
     void set_state(const DistortionState& state);
     
-    ChebyshevTable(const dsp::ProcessSpec& spec, float order, float gain, bool second_kind = false);
+    ChebyshevTable(const ProcessSpec& spec, float order, float volume, bool second_kind = false);
     
     void set_scaling(float amount);
     
-    void process(std::vector<dsp::AudioBlock<float>>& input, std::vector<dsp::AudioBlock<float>>& output, std::vector<dsp::AudioBlock<float>>& amplitude);
+    void process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output);
     
     void set_mod_depth(float depth);
     void set_mod_rate(float rate);
@@ -70,7 +72,13 @@ public:
     void set_enabled(bool enabled);
     void set_stereo(bool stereo);
     
-    void set_table(float order, float gain, bool second_kind = false);
+    void set_centre_freqs(std::vector<float> centre_freqs);
+    void set_high(bool low_mode);
+    
+    
+    void set_volume( float new_volume);
+    void set_order(float order, bool second_kind = false);
+    
     
     void set_sync(bool sync);
     void sync_with_playhead(AudioPlayHead* playhead);
@@ -79,10 +87,13 @@ private:
 
     SequenceLFO lfo;
     
+    std::vector<StateVariableTPTFilter<float>> noise_filters;
+    
     bool enabled = true, kind = false;
     bool lfo_stereo = false, lfo_sync = false;
+    bool high_mode = false;
     
-    float poly_order, gain, scaling;
+    float poly_order, volume, scaling;
     
     float mod_freq = 2.0f;
     float mod_depth = 0.25;
@@ -91,10 +102,14 @@ private:
     float sample_rate;
     int num_channels;
     
-    SmoothedValue<float> smoothed_gain, smoothed_scaling, smoothed_order;
-
-    std::array<dsp::LookupTableTransform<float>, num_polynomials>* current_table;
+    ProcessSpec process_spec;
     
-    dsp::AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_gain_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
-    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_gain_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
+    std::vector<float> filter_freqs;
+    
+    SmoothedValue<float> smoothed_volume, smoothed_scaling, smoothed_order;
+
+    std::array<LookupTableTransform<float>, num_polynomials>* current_table;
+    
+    AudioBlock<float> buffer, lfo_buffer, smoothed_order_buffer, smoothed_volume_buffer, smoothed_scaling_buffer, clean_buffer, temp_buffer;
+    HeapBlock<char> buffer_data, lfo_buffer_data, smoothed_volume_data, smoothed_order_data, smoothed_scaling_data, clean_data, temp_data;
 };

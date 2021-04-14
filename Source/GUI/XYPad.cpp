@@ -20,7 +20,7 @@ XYPad::XYPad(ValueTree parent_tree)
         ValueTree child_tree = ValueTree("XYSlider");
         pad_tree.appendChild(child_tree, nullptr);
         XYSlider* slider = sliders.add(new XYSlider(child_tree));
-        slider->setCentrePosition(100, 100);
+        slider->setCentrePosition(160, 100);
         
         slider->onClick = [this, slider, xy_pad]() mutable {
             xy_pad->set_selection(slider);
@@ -31,8 +31,6 @@ XYPad::XYPad(ValueTree parent_tree)
         
         new_slider.setEnabled(pad_tree.getNumChildren() < 5);
     };
-    
-    
     
     pad_tree.addListener(this);
     

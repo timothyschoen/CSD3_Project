@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "Filterbanks/GammatoneFilterBank.hpp"
-#include "Filterbanks/ResonBands.hpp"
+#include "EnvelopeFollower.hpp"
+#include "Filterbanks/Filterbank.hpp"
 #include "concurrentqueue.hpp"
 #include "ChebyshevTable.hpp"
-#include "HilbertAmplitude.hpp"
+
 #include <JuceHeader.h>
 
 
@@ -68,21 +68,25 @@ public:
     
 private:
     
-    dsp::ProcessSpec last_spec;
-    dsp::ProcessSpec oversampled_spec;
-    
+    ProcessSpec last_spec;
+    ProcessSpec oversampled_spec;
     
     moodycamel::ConcurrentQueue<std::function<void()>> queue;
     
     std::unique_ptr<Filterbank> filter_bank;
     OwnedArray<ChebyshevTable> chebyshev_distortions;
 
-
-    void set_harmonic(int idx, float shift, float gain, bool kind);
-    void delete_harmonic(int idx);
+    void set_harmonic_order(int idx, float shift, bool kind);
+    void set_harmonic_volume(int idx, float volume);
     
-    void update_bands(int freq_range_overlap, bool reset = false);
+    void add_harmonic();
+    void delete_harmonic(int idx);
+    void clear_harmonics();
+    
+    void set_num_bands(int selection, bool reset = false);
     void set_oversample_rate(int new_oversample_factor);
+    
+    std::vector<float> get_centre_freqs();
     
     float sample_rate;
     int num_bands;
@@ -95,24 +99,25 @@ private:
     int oversample_factor = 1;
     SmoothedValue<float> master_volume;
     SmoothedValue<float> tone_cutoff;
-    SmoothedValue<float> wet;
     SmoothedValue<float> gain;
     
+    bool high_mode = false;
     bool smooth_mode = false;
-    bool heavy_mode = false;
     
 
-    std::unique_ptr<HilbertAmplitude> hilbert;
+    std::unique_ptr<EnvelopeFollower> envelope_follower;
     
-    dsp::AudioBlock<float> tone_block, wet_block, dry_block, gain_block;
-    HeapBlock<char> tone_data, wet_data, dry_data, gain_data;
+    AudioBlock<float> tone_block, gain_block;
+    HeapBlock<char> tone_data, gain_data;
     
     std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
-    std::vector<dsp::AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;
+    std::vector<AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;
     
-    std::vector<dsp::StateVariableTPTFilter<float>> noise_filters;
+    std::vector<StateVariableTPTFilter<float>> noise_filters;
     
-    std::unique_ptr<dsp::Oversampling<float>> oversampler;
+    std::unique_ptr<Oversampling<float>> oversampler;
+    
+    DryWetMixer<float> mixer;
     
     AudioProcessorValueTreeState proc_valuetree;
     

@@ -1,20 +1,24 @@
-#include "HilbertAmplitude.hpp"
+#include "HilbertEnvelope.hpp"
 #include <complex>
 #include <random>
 #include <algorithm>
 
-HilbertAmplitude::HilbertAmplitude(dsp::ProcessSpec& spec, int bands, int oversample_factor) {
+HilbertEnvelope::HilbertEnvelope(ProcessSpec& spec, int bands, int oversample_factor) {
     oversamp = oversample_factor;
     num_channels = spec.numChannels;
     num_bands = bands;
+    
+    alpha_release = std::exp ((-2.0 * MathConstants<double>::pi * 1000.0f / spec.sampleRate) / release_ms);
     
     states.resize(num_bands, std::vector<HilbertState>(num_channels));
     
     clear();
     GetAntiDenormalTable(adtab, 16);
+    
+    
 }
 
-void HilbertAmplitude::GetAntiDenormalTable(float* d, int size) {
+void HilbertEnvelope::GetAntiDenormalTable(float* d, int size) {
     static auto generator = std::default_random_engine();  // Generates random integers
     static auto distribution = std::uniform_real_distribution<float>(-0.999, +0.999);
     auto gen = []() {
@@ -30,24 +34,25 @@ void HilbertAmplitude::GetAntiDenormalTable(float* d, int size) {
     }
 }
 
-void HilbertAmplitude::clear() {
+void HilbertEnvelope::clear() {
     for(auto& channel : states) {
-        for(auto& [xn1, yn1, s, adidx] : channel) {
-            xn1 = 0;
-            yn1 = 0;
+        for(auto& [xn1, yn1, s, adidx, release_state] : channel) {
+            xn1 = 0.0f;
+            yn1 = 0.0f;
             std::fill(s.begin(), s.end(), 0.0);
             adidx = 0;
+            release_state = 0.0f;
         }
     }
 }
 
-void HilbertAmplitude::process(const std::vector<dsp::AudioBlock<float>>& in_bands, std::vector<dsp::AudioBlock<float>>& out_bands, std::vector<dsp::AudioBlock<float>>& inverse_bands, int num_samples) {
+void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) {
     
     num_samples /= oversamp;
     
     for (int b = 0; b < num_bands; b++) {
         for (int ch = 0; ch < num_channels; ch++) {
-            auto& [xn1, yn1, s, adidx] = states[b][ch];
+            auto& [xn1, yn1, s, adidx, release_state] = states[b][ch];
             
             float adn[2];
             adn[0] = adtab[adidx];
@@ -118,6 +123,12 @@ void HilbertAmplitude::process(const std::vector<dsp::AudioBlock<float>>& in_ban
                 s[30] = xa + 0.061990080f * i_out;
                 
                 float out_value = std::abs(std::complex(r_out, i_out));
+                
+                if(out_value < release_state) {
+                    out_value = out_value + alpha_release * (release_state - out_value);
+                }
+                
+                release_state = out_value;
                 
                 for(int o = 0; o < oversamp; o++) {
                     output[i * oversamp + o] = 1.0f / out_value;

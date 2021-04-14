@@ -12,7 +12,7 @@
 struct SequenceLFO
 {
     
-    SequenceLFO(const dsp::ProcessSpec& spec);
+    SequenceLFO(const ProcessSpec& spec);
     
     
     // Setters for parameters
@@ -22,13 +22,13 @@ struct SequenceLFO
     void set_sync(bool should_sync)  {  sync = should_sync;             }
     void set_stereo(bool is_stereo)  {  stereo = is_stereo;             }
     void set_voice(int shape) {
-        if(shape != 0) enabled = true;
+        enabled = shape;
         sequence = {shape&1, shape&2, shape&4, shape&8};
     };
         
     
     
-    void process(dsp::AudioBlock<float> output);
+    void process(AudioBlock<float> output);
     
     void next_shape();
         
