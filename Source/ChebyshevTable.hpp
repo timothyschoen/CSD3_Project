@@ -54,34 +54,17 @@ class ChebyshevTable
 public:
     //==============================================================================
     
-    DistortionState get_state();
+    ChebyshevTable(const ProcessSpec& spec, std::vector<float> centre_freqs);
     
-    void set_state(const DistortionState& state);
-    
-    ChebyshevTable(const ProcessSpec& spec, float order, float volume, bool second_kind = false);
-    
-    void set_scaling(float amount);
+    ChebyshevTable(const ProcessSpec& spec, const ChebyshevTable& to_copy);
     
     void process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output);
-    
-    void set_mod_depth(float depth);
-    void set_mod_rate(float rate);
-    void set_mod_shape(int shape_flag);
-    
-    
-    void set_enabled(bool enabled);
-    void set_stereo(bool stereo);
+
+    void sync_with_playhead(AudioPlayHead* playhead);
     
     void set_centre_freqs(std::vector<float> centre_freqs);
-    void set_high(bool low_mode);
     
-    
-    void set_volume( float new_volume);
-    void set_order(float order, bool second_kind = false);
-    
-    
-    void set_sync(bool sync);
-    void sync_with_playhead(AudioPlayHead* playhead);
+    void receive_message(const Identifier& id, float value);
 
 private:
 
@@ -91,9 +74,9 @@ private:
     
     bool enabled = true, kind = false;
     bool lfo_stereo = false, lfo_sync = false;
-    bool high_mode = false;
+    bool high_mode = false, invert_phase = false;
     
-    float poly_order, volume, scaling;
+    float order = 2.0f, volume = 0.9f, scaling = 1.0f;
     
     float mod_freq = 2.0f;
     float mod_depth = 0.25;

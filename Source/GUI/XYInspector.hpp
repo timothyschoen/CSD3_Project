@@ -35,8 +35,9 @@ struct XYInspector : public Component
     TextButton delete_slider = TextButton("x");
     
     SelectorComponent kind_select = SelectorComponent({"I", "II"});
-    MultipleSelectorComponent shape_select = MultipleSelectorComponent({"SIN", "TRI", "SQR", "SAW", });
     
+    MultipleSelectorComponent shape_select = MultipleSelectorComponent({"SIN", "TRI", "SQR", "SAW"});
+    MultipleSelectorComponent phase_select = MultipleSelectorComponent({juce::CharPointer_UTF8 ("\xc3\x98")});
     MultipleSelectorComponent mod_settings = MultipleSelectorComponent({"SYNC", "STEREO"});
     
     TextButton enabled_button = TextButton("E");

@@ -48,27 +48,18 @@ bool ChebyshevFactory::fillTables() {
 }
 
 
-ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, float order, float new_volume, bool second_kind) :  lfo(spec)
-
+ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, std::vector<float> centre_freqs) :  lfo(spec)
 {
-    
     process_spec = spec;
     
     sample_rate = spec.sampleRate;
-    
-    //set_table(order, volume, second_kind);
-    
-    set_order(order, second_kind);
-    set_volume(new_volume);
-    
+
     num_channels = spec.numChannels;
     
     smoothed_order.reset(sample_rate, 0.02f);
     smoothed_volume.reset(sample_rate, 0.02f);
     smoothed_scaling.reset(sample_rate, 0.02f);
 
-    set_stereo(true);
-    
     buffer = AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
     lfo_buffer = AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
     
@@ -76,43 +67,61 @@ ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, float order, float new_v
     smoothed_volume_buffer = AudioBlock<float>(smoothed_volume_data, 1, spec.maximumBlockSize);
     smoothed_scaling_buffer = AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
     temp_buffer = AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
+    
+    current_table = &ChebyshevFactory::first_tables;
+    
+    set_centre_freqs(centre_freqs);
 }
 
-DistortionState ChebyshevTable::get_state() {
-    return {enabled, kind, poly_order, volume, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo, high_mode, filter_freqs};
-}
+ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, const ChebyshevTable& to_copy) :  lfo(spec) {
+    
+    process_spec = spec;
+    
+    sample_rate = spec.sampleRate;
 
-void ChebyshevTable::set_state(const DistortionState& state) {
-    std::tie(enabled, kind, poly_order, volume, scaling, mod_freq, mod_depth, mod_shape, lfo_sync, lfo_stereo, high_mode, filter_freqs) = state;
+    num_channels = spec.numChannels;
+    
+    smoothed_order.reset(sample_rate, 0.02f);
+    smoothed_volume.reset(sample_rate, 0.02f);
+    smoothed_scaling.reset(sample_rate, 0.02f);
 
+    buffer = AudioBlock<float>(buffer_data, num_channels, spec.maximumBlockSize);
+    lfo_buffer = AudioBlock<float>(lfo_buffer_data, num_channels, spec.maximumBlockSize);
+    
+    smoothed_order_buffer = AudioBlock<float>(smoothed_order_data, 1, spec.maximumBlockSize);
+    smoothed_volume_buffer = AudioBlock<float>(smoothed_volume_data, 1, spec.maximumBlockSize);
+    smoothed_scaling_buffer = AudioBlock<float>(smoothed_scaling_data, num_channels, spec.maximumBlockSize);
+    temp_buffer = AudioBlock<float>(temp_data, num_channels, spec.maximumBlockSize);
+    
+    enabled = to_copy.enabled;
+    kind    = to_copy.kind;
+    order   = to_copy.order;
+    volume  = to_copy.volume;
+    scaling = to_copy.scaling;
+    mod_freq   = to_copy.mod_freq;
+    mod_depth  = to_copy.mod_depth;
+    mod_shape  = to_copy.mod_shape;
+    lfo_sync   = to_copy.lfo_sync;
+    lfo_stereo = to_copy.lfo_stereo;
+    high_mode  = to_copy.high_mode;
+    filter_freqs = to_copy.filter_freqs;
+    
     current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
     
-    smoothed_order.setCurrentAndTargetValue(poly_order);
+    smoothed_order.setCurrentAndTargetValue(order);
     smoothed_volume.setCurrentAndTargetValue(volume);
     smoothed_scaling.setCurrentAndTargetValue(scaling);
 
     // Make sure state is also set for all LFOs
-    set_mod_depth(mod_depth);
-    set_mod_rate(mod_freq);;
-    set_mod_shape(mod_shape);
-    set_stereo(lfo_stereo);
-    set_sync(lfo_sync);
-    
+    lfo.set_depth(mod_depth);
+    lfo.set_frequency(mod_freq);
+    lfo.set_voice(mod_shape);
+    lfo.set_stereo(lfo_stereo);
+    lfo.set_sync(lfo_sync);
+
     set_centre_freqs(filter_freqs);
 }
 
-
-void ChebyshevTable::set_scaling(float amount)
-{
-    smoothed_scaling.setTargetValue(amount);
-    scaling = amount;
-    
-}
-
-void ChebyshevTable::set_enabled(bool is_enabled)
-{
-    enabled = is_enabled;
-}
 
 void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output) {
     
@@ -174,6 +183,7 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
                 float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
                 
                 channel_ptr[n] = (y1 + y2);
+                channel_ptr[n] *= invert_phase ? -1.0f : 1.0f;
                 
                 jassert(std::isfinite(channel_ptr[n]));
             
@@ -191,16 +201,7 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
         output[b] += final_buffer;
     }
 }
-void ChebyshevTable::set_high(bool low_mode) {
-    high_mode = !low_mode;
-    
-    // Apply mode to filters
-    for(int b = 0; b < filter_freqs.size(); b++) {
-        float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
-        noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
-        noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
-    }
-}
+
 
 void ChebyshevTable::set_centre_freqs(std::vector<float> centre_freqs) {
     filter_freqs = centre_freqs;
@@ -220,52 +221,72 @@ void ChebyshevTable::set_centre_freqs(std::vector<float> centre_freqs) {
     }
 }
 
-
-void ChebyshevTable::set_stereo(bool stereo) {
-    lfo_stereo = stereo;
-    lfo.set_stereo(stereo);
-}
-
-void ChebyshevTable::set_mod_depth(float depth) {
-    mod_depth = depth;
-    lfo.set_depth(depth);
-}
-
-void ChebyshevTable::set_mod_rate(float rate) {
-    mod_freq = rate;
-    lfo.set_frequency(rate);
-}
-
-void ChebyshevTable::set_mod_shape(int shape_flag) {
-    mod_shape = shape_flag;
-    lfo.set_voice(shape_flag);
-}
-
-void ChebyshevTable::set_volume(float new_volume) {
-    // Apply volume scaling
-    volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
-    smoothed_volume.setTargetValue(volume);
-}
-void ChebyshevTable::set_order(float order, bool second_kind) {
-    kind = second_kind;
-    poly_order = order;
-    
-    smoothed_order.setTargetValue(order);
-    
-    for(int b = 0; b < filter_freqs.size(); b++) {
-        float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
-        noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
-        noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
-    }
-    
-    current_table = second_kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
-}
-
 void ChebyshevTable::sync_with_playhead(AudioPlayHead* playhead) {
     lfo.sync_with_playhead(playhead);
 }
 
-void ChebyshevTable::set_sync(bool sync) {
-    lfo_sync = sync;
-    lfo.set_sync(sync);
+void ChebyshevTable::receive_message(const Identifier& id, float value)  {
+    
+        if(id == Identifier("X")) {
+            //bool kind = changed_tree.getProperty("Kind");
+            order = (value + 0.0085f) * 8.2f;
+            smoothed_order.setTargetValue(order);
+            
+            for(int b = 0; b < filter_freqs.size(); b++) {
+                float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
+                noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
+                noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+            }
+        }
+        else if(id == Identifier("Y")) {
+            float new_volume = (1.0f - value) * 1.5f;
+            // Apply volume scaling
+            volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
+            smoothed_volume.setTargetValue(volume);
+        }
+        else if(id == Identifier("Kind")) {
+            kind = value;
+            current_table = kind ? &ChebyshevFactory::second_tables : &ChebyshevFactory::first_tables;
+        }
+        else if(id == Identifier("Phase")) {
+            invert_phase = value;
+        }
+        else if(id == Identifier("ModDepth")) {
+            mod_depth = value;
+            lfo.set_depth(value);
+        }
+        else if(id == Identifier("ModSettings")) {
+            bool sync = (int)value & 1;
+            lfo_sync = sync;
+            lfo.set_sync(sync);
+            
+            bool stereo = (int)value & 2;
+            lfo_stereo = stereo;
+            lfo.set_stereo(stereo);
+        }
+        else if(id == Identifier("ModShape")) {
+            mod_shape = (int)value;
+            lfo.set_voice(mod_shape);
+        }
+        else if(id == Identifier("ModRate")) {
+            mod_freq = value;
+            lfo.set_frequency(mod_freq);
+        }
+        else if(id == Identifier("Enabled")) {
+            enabled = value;
+        }
+        else if(id == Identifier("Drive")) {
+            smoothed_scaling.setTargetValue(value);
+            scaling = value;
+        }
+        else if(id == Identifier("High")) {
+            high_mode = !value;
+            
+            // Apply mode to filters
+            for(int b = 0; b < filter_freqs.size(); b++) {
+                float centre_freq = std::clamp<float>(filter_freqs[b] * smoothed_order.getTargetValue(), 0, sample_rate / 2 - 1);
+                noise_filters[b].setType(high_mode ? StateVariableTPTFilterType::bandpass : StateVariableTPTFilterType::highpass);
+                noise_filters[b].setCutoffFrequency(high_mode ? centre_freq : (centre_freq * (2.0f / 3.0f)));
+            }
+        }
 }

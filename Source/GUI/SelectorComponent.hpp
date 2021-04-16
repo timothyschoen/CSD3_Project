@@ -193,7 +193,7 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
     
     std::vector<int> state;
     
-    MultipleSelectorComponent(StringArray titles) {
+    MultipleSelectorComponent(Array<String> titles) {
         int num_options = titles.size();
         state.resize(num_options, 0.0f);
         
@@ -218,6 +218,9 @@ struct MultipleSelectorComponent : public Component, private Value::Listener
         if(num_options > 1) {
             buttons.getFirst()->setConnectedEdges(2);
             buttons.getLast()->setConnectedEdges(1);
+        }
+        else {
+            buttons.getFirst()->setConnectedEdges(0);
         }
     }
     

@@ -75,13 +75,8 @@ private:
     
     std::unique_ptr<Filterbank> filter_bank;
     OwnedArray<ChebyshevTable> chebyshev_distortions;
-
-    void set_harmonic_order(int idx, float shift, bool kind);
-    void set_harmonic_volume(int idx, float volume);
     
     void add_harmonic();
-    void delete_harmonic(int idx);
-    void clear_harmonics();
     
     void set_num_bands(int selection, bool reset = false);
     void set_oversample_rate(int new_oversample_factor);
@@ -95,7 +90,6 @@ private:
     const int max_bands = 50;
     const int max_voices = 5;
     
-    
     int oversample_factor = 1;
     SmoothedValue<float> master_volume;
     SmoothedValue<float> tone_cutoff;
@@ -103,7 +97,6 @@ private:
     
     bool high_mode = false;
     bool smooth_mode = false;
-    
 
     std::unique_ptr<EnvelopeFollower> envelope_follower;
     
@@ -112,8 +105,6 @@ private:
     
     std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
     std::vector<AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;
-    
-    std::vector<StateVariableTPTFilter<float>> noise_filters;
     
     std::unique_ptr<Oversampling<float>> oversampler;
     

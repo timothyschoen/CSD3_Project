@@ -26,6 +26,7 @@ XYInspector::XYInspector() {
     shape_select.set_tooltips({"Sine", "Square", "Triangle", "Sawtooth"});
     mod_settings.set_tooltips({"Sync to DAW tempo", "Enable/disable stereo"});
     
+    phase_select.set_tooltips({"Invert Phase"});
     mod_depth.setTooltip("Modulation Depth");
     mod_rate.setTooltip("Modulation Frequency");
     drive.setTooltip("Drive");
@@ -102,7 +103,7 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(enabled_button);
    
     settings.addAndMakeVisible(drive);
-    
+    settings.addAndMakeVisible(phase_select);
     settings.addAndMakeVisible(shape_select);
     settings.addAndMakeVisible(mod_settings);
     settings.addAndMakeVisible(mod_depth);
@@ -141,7 +142,8 @@ void XYInspector::resized()
     
     kind_select.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 1.5f, 20);
     
-    drive.setBounds(x_pos, 70, item_width, item_height);
+    drive.setBounds(x_pos, 70, item_width - 27, item_height);
+    phase_select.setBounds(x_pos + (item_width - 20), 70, 23, 23);
 
     shape_select.setBounds(x_pos + item_width / 6.0f, 115, item_width / 1.5f, 20);
     mod_settings.setBounds(x_pos + item_width / 6.0f, 150, item_width / 1.5f, 20);
@@ -180,6 +182,7 @@ void XYInspector::attach_to_tree(ValueTree tree)
     current_tree = tree;
     drive.getValueObject().referTo(tree.getPropertyAsValue("Drive", nullptr));
     
+    phase_select.getValueObject().referTo(tree.getPropertyAsValue("Phase", nullptr));
     shape_select.getValueObject().referTo(tree.getPropertyAsValue("ModShape", nullptr));
     kind_select.getValueObject().referTo(tree.getPropertyAsValue("Kind", nullptr));
     

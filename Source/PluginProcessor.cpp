@@ -78,7 +78,8 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
         layout.add (std::make_unique<AudioParameterFloat> (ID + "X", ID + "X", 0, 1, 0.5f));
         layout.add (std::make_unique<AudioParameterFloat> (ID + "Y", ID + "Y", 0, 1, 0.5f));
         
-        layout.add (std::make_unique<AudioParameterFloat> (ID + "Drive", ID + "Distortion Shape", 0, 1, 0.5f));
+        layout.add (std::make_unique<AudioParameterFloat> (ID + "Drive", ID + "Drive", 0, 1, 0.5f));
+        layout.add (std::make_unique<AudioParameterBool> (ID + "Phase", ID + "Phase", 0));
         layout.add (std::make_unique<AudioParameterBool> (ID + "Kind", ID + "Kind", 0));
         layout.add (std::make_unique<AudioParameterInt> (ID + "ModShape", ID + "Modulation Shape", 0, 15, 0));
         layout.add (std::make_unique<AudioParameterFloat> (ID + "ModDepth", ID + "Modulation Depth", 0, 1, 1.0f));
@@ -272,10 +273,7 @@ void ZirconAudioProcessor::set_oversample_rate(int new_oversample_factor)
     oversampler->initProcessing(block_size);
     
     for(int i = 0; i < chebyshev_distortions.size(); i++) {
-        auto state = chebyshev_distortions[i]->get_state();
-        
-        chebyshev_distortions.set(i, new ChebyshevTable(oversampled_spec, 1, 1, false));
-        chebyshev_distortions[i]->set_state(state);
+        chebyshev_distortions.set(i, new ChebyshevTable(oversampled_spec, *chebyshev_distortions[i]));
     }
     
     gain.reset(sample_rate * oversample_factor, 0.02f);
@@ -420,7 +418,7 @@ void ZirconAudioProcessor::valueTreeChildRemoved(ValueTree &parent_tree, ValueTr
 {
     if(removed_child.getType() == Identifier("XYSlider")) {
         queue.enqueue([this, idx]() mutable {
-            delete_harmonic(idx);
+            chebyshev_distortions.remove(idx);
         });
     }
 }
@@ -428,55 +426,17 @@ void ZirconAudioProcessor::valueTreeChildRemoved(ValueTree &parent_tree, ValueTr
 void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, const Identifier &property)
 {
     float value = changed_tree.getProperty(property);
+    
+    // When a property changes on a subtree named XYSlider,
+    // forward the messge to the chebychev distortion
     if(changed_tree.getType() == Identifier("XYSlider")) {
-        int slider_idx = changed_tree.getParent().indexOf(changed_tree);
+        int idx = changed_tree.getParent().indexOf(changed_tree);
+        float value = changed_tree.getProperty(property);
+        Identifier id = property;
         
-        if(property == Identifier("X") || property == Identifier("Kind")) {
-            bool kind = changed_tree.getProperty("Kind");
-            float shift = ((float)changed_tree.getProperty("X") + 0.0085f) * 8.2f;
-            
-            queue.enqueue([this, kind, shift, slider_idx]() mutable {
-                set_harmonic_order(slider_idx, shift, kind);
-            });
-        }
-        if(property == Identifier("Y")) {
-            float volume = (1.0f - (float)changed_tree.getProperty("Y")) * 1.5f;
-            queue.enqueue([this, volume, slider_idx]() mutable {
-                set_harmonic_volume(slider_idx, volume);
-            });
-        }
-        else if(property == Identifier("ModDepth")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_mod_depth(value * 4.0f);
-            });
-        }
-        else if(property == Identifier("ModSettings")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_sync((int)value & 1);
-                chebyshev_distortions[slider_idx]->set_stereo((int)value & 2);
-            });
-        }
-        else if(property == Identifier("ModShape")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                int shape_flag = value;
-                chebyshev_distortions[slider_idx]->set_mod_shape(shape_flag);
-            });
-        }
-        else if(property == Identifier("ModRate")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_mod_rate(value);
-            });
-        }
-        else if(property == Identifier("Enabled")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_enabled((bool)value);
-            });
-        }
-        else if(property == Identifier("Drive")) {
-            queue.enqueue([this, value, slider_idx]() mutable {
-                chebyshev_distortions[slider_idx]->set_scaling(value);
-            });
-        }
+        queue.enqueue([this, idx, id, value]() mutable {
+            chebyshev_distortions[idx]->receive_message(id, value);
+        });
     }
     else if(property == Identifier("Intermodulation")) {
         queue.enqueue([this, value]() mutable {
@@ -520,35 +480,16 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
         });
     }
     else if(property == Identifier("High")) {
-        queue.enqueue([this, value]() mutable {
+        queue.enqueue([this, property, value]() mutable {
             high_mode = value;
-            
             for(auto& distortion : chebyshev_distortions)
             {
-                distortion->set_high(high_mode);
+                distortion->receive_message("High", value);
             }
         });
     }
 }
 
-void ZirconAudioProcessor::delete_harmonic(int idx) {
-    chebyshev_distortions.remove(idx);
-}
-
-void ZirconAudioProcessor::add_harmonic() {
-    
-    auto* distortion = chebyshev_distortions.add(new ChebyshevTable(oversampled_spec, 2.0f, 0.9, false));
-    distortion->set_scaling(1.0f);
-    distortion->set_centre_freqs(get_centre_freqs());
-}
-
-void ZirconAudioProcessor::set_harmonic_volume(int idx, float volume) {
-    chebyshev_distortions[idx]->set_volume(volume);
-}
-
-void ZirconAudioProcessor::set_harmonic_order(int idx, float shift, bool kind) {
-    chebyshev_distortions[idx]->set_order(shift, kind);
-}
 
 //==============================================================================
 bool ZirconAudioProcessor::hasEditor() const
@@ -597,7 +538,7 @@ void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInByte
     
     for(auto slider : main_tree.getChildWithName("XYPad")) {
         queue.enqueue([this]() mutable {
-            add_harmonic();
+            chebyshev_distortions.add(new ChebyshevTable(oversampled_spec, get_centre_freqs()));
         });
     }
     
@@ -609,7 +550,7 @@ void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInByte
 void ZirconAudioProcessor::valueTreeChildAdded(ValueTree &parentTree, ValueTree &childWhichHasBeenAdded) {
     if(childWhichHasBeenAdded.getType() == Identifier("XYSlider")) {
         queue.enqueue([this]() mutable {
-            add_harmonic();
+            chebyshev_distortions.add(new ChebyshevTable(oversampled_spec, get_centre_freqs()));
         });
     }
 }
