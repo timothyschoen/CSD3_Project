@@ -18,12 +18,12 @@ class ChebyshevFactory : public LookupTableTransform<float>
     
 public:
     
-    static bool fillTables();
+    static bool fill_tables();
     
     inline static std::array<LookupTableTransform<float>, num_polynomials> first_tables;
     inline static std::array<LookupTableTransform<float>, num_polynomials> second_tables;
     
-    inline static bool initialised = fillTables();
+    inline static bool initialised = fill_tables();
     
     
 private:

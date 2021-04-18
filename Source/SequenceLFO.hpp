@@ -8,12 +8,11 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include <bitset>
 
 struct SequenceLFO
 {
-    
     SequenceLFO(const ProcessSpec& spec);
-    
     
     // Setters for parameters
     void set_frequency(float freq)   {  frequency.setTargetValue(freq); }
@@ -21,13 +20,8 @@ struct SequenceLFO
     void set_inverse(bool is_stereo) {  stereo = is_stereo;             }
     void set_sync(bool should_sync)  {  sync = should_sync;             }
     void set_stereo(bool is_stereo)  {  stereo = is_stereo;             }
-    void set_voice(int shape) {
-        enabled = shape;
-        sequence = {shape&1, shape&2, shape&4, shape&8};
-    };
-        
-    
-    
+    void set_voice(int new_shape)    {  shape = new_shape;              };
+
     void process(AudioBlock<float> output);
     
     void next_shape();
@@ -36,7 +30,7 @@ struct SequenceLFO
     
 private:
     int state = 0;
-    std::vector<int> sequence = {0, 0, 0, 0};
+    int shape = 0;
     
     std::vector<std::function<float(float)>> waveshapes;
     
@@ -54,6 +48,22 @@ private:
                                            1.0f / 32.0f * 4.0f,
                                            1.0f / 64.0f * 4.0f };
     
-    bool enabled = true, sync = false, stereo = false;
+    bool sync = false, stereo = false;
     
+    
+    static int count_bits (int n) {
+        int count = 0;
+        while (n) {
+            n &= (n - 1);
+            count++;
+        }
+        return count;
+    }
+    
+    
+    inline static std::array<LookupTableTransform<float>, 16> lfo_tables;
+    
+    static bool fill_tables();
+
+    inline static bool initialised = fill_tables();
 };

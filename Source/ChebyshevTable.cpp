@@ -9,7 +9,7 @@
 
 
 
-bool ChebyshevFactory::fillTables() {
+bool ChebyshevFactory::fill_tables() {
     
     for(int i = 0; i < num_polynomials; i++) {
         int order = i;

@@ -16,54 +16,27 @@ SequenceLFO::SequenceLFO(const ProcessSpec& spec) {
     synced_frequency.reset(sample_rate, 0.02f);
     frequency.reset(sample_rate, 0.02f);
     depth.reset(sample_rate, 0.02f);
-    
-    waveshapes.resize(5);
-    
-    // flat shape
-    waveshapes[4] = [this](float x) {
-        return 0;
-    };
-    
-    // Sine shape
-    waveshapes[0] = [this](float x) {
-        return FastMathApproximations::sin((x * MathConstants<float>::twoPi) - MathConstants<float>::pi);
-    };
-    
-    // Square shape
-    waveshapes[1] = [this](float x) {
-        return x < 0.5f ? -1.0f : 1.0f;
-    };
-    
-    //Triangle shape
-    waveshapes[2] = [this](float x) {
-        // Shift phase to make it start at 0, and smoothly connect to other shapes
-        x += 0.25;
-        if(x >= 1.0f) x -= 1.0f;
-        
-        return ((x < 0.5) * (4.0f * x - 1.0f)) + ((x >= 0.5) * (1.0f - 4.0f * (x - 0.5)));
-    };
-    // Sawtooth shape
-    waveshapes[3] = [this](float x) {
-        return ((phase * 2.0f) - 1.0f);
-    };
 }
 
 
 
 void SequenceLFO::process(AudioBlock<float> output) {
-    if(!enabled) {
+    if(!shape) {
         output.clear();
         return;
     }
+    
+    float num_selected = count_bits(shape);
+    
     auto* output_ptr = output.getChannelPointer(0);
     for(int n = 0; n < output.getNumSamples(); n++) {
         phase += (sync ? synced_frequency.getNextValue() : frequency.getNextValue() * 2.0f) / sample_rate;
         
-        if(phase >= 1.0f) {
-            phase -= 1.0f;
-            next_shape();
+        if(phase >= num_selected) {
+            phase -= num_selected;
         }
-        output_ptr[n] = waveshapes[state](phase) * depth.getNextValue();
+        
+        output_ptr[n] = lfo_tables[shape](phase) * depth.getNextValue();
     }
     
     if(num_channels > 1) {
@@ -73,24 +46,6 @@ void SequenceLFO::process(AudioBlock<float> output) {
     
 }
 
-void SequenceLFO::next_shape() {
-    // Find next shape in sequence
-    enabled = true;
-    
-    state++;
-    state &= 3;
-    
-    for(int i = 0; i < sequence.size(); i++) {
-        if(sequence[state] != 0) break;
-        state++;
-        state &= 3;
-    }
-    
-    if(sequence[state & 3] == 0) {
-        state = 4;
-        enabled = false;
-    }
-}
 
 void SequenceLFO::sync_with_playhead(AudioPlayHead* playhead) {
     AudioPlayHead::CurrentPositionInfo position_info;
@@ -110,4 +65,52 @@ void SequenceLFO::sync_with_playhead(AudioPlayHead* playhead) {
         float p = position_info.ppqPosition * scaler;
         phase = p - floor(p);
     }
+}
+
+bool SequenceLFO::fill_tables() {
+    
+    for(int i = 0; i < 16; i++) {
+        lfo_tables[i].initialise([i](float x) mutable {
+            float input_value = fmod(x, 1.0f);
+            
+            // Sine
+            if(i & 1 && x <= 1.0f) {
+                return FastMathApproximations::sin((input_value * MathConstants<float>::twoPi) - MathConstants<float>::pi);
+            }
+            else if(!(i & 1)){
+                x += 1.0f;
+            }
+            
+            // Square
+            if(i & 2 && x <= 2.0f) {
+                return input_value < 0.5f ? -1.0f : 1.0f;
+            }
+            else if(!(i & 2)){
+                x += 1.0f;
+            }
+            // Triangle
+            if(i & 4 && x <= 3.0f) {
+                input_value += 0.25;
+                if(input_value >= 1.0f) input_value -= 1.0f;
+                
+                return ((input_value < 0.5f) * (4.0f * input_value - 1.0f)) + ((input_value >= 0.5f) * (1.0f - 4.0f * (input_value - 0.5f)));
+            }
+            else if(!(i & 4)){
+                x += 1.0f;
+            }
+            
+            // Sawtooth
+            if(i & 8 && x <= 4.0f) {
+                return ((input_value * 2.0f) - 1.0f);
+            }
+            else if(!(i & 8)){
+                x += 1.0f;
+            }
+            
+            return 0.0f;
+            
+        }, 0.0f, 4.0f, 128);
+    }
+    
+    return true;
 }
