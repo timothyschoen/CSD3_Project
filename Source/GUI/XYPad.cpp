@@ -69,6 +69,14 @@ void XYPad::paint(Graphics& g)
         g.setColour((i & 1) ? Colours::white.withAlpha((float)0.6) : Colours::white.withAlpha((float)0.3));
         g.drawLine(i * line_spacing, 0, i * line_spacing, getHeight());
     }
+
+    if(selection_name.isEmpty()) return;
+    
+    g.setColour(ColourTheme::bg_light.withAlpha(0.9f));
+    g.fillRect(0, getHeight() - 25, 140, 25);
+    
+    g.setColour(Colours::white);
+    g.drawFittedText(selection_name + ": " + selection_value , 5, getHeight() - 25, 135, 25, Justification::left, 1);
 }
 
 void XYPad::set_selection(XYSlider* slider)

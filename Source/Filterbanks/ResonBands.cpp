@@ -59,7 +59,6 @@ void ResonBands::process(const AudioBlock<float>& input, std::vector<AudioBlock<
             auto* out_ptr = output[i].getChannelPointer(ch);
             
             for(int n = 0; n < num_samples; n++) {
-                // TODO: use circular buffer
                 double ym1 = n >= 1 ? out_ptr[n-1] : filter_feedback_y[i][ch][n + 1];
                 double ym2 = n >= 2 ? out_ptr[n-2] : filter_feedback_y[i][ch][n];
                 double xm2 = n >= 2 ? in_ptr[n-2]  : filter_feedback_x[ch][n];

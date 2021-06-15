@@ -16,7 +16,7 @@
 //==============================================================================
 /**
 */
-class ZirconAudioProcessorEditor  : public juce::AudioProcessorEditor
+class ZirconAudioProcessorEditor  : public juce::AudioProcessorEditor, private ValueTree::Listener, public Timer
 {
 public:
     ZirconAudioProcessorEditor (ZirconAudioProcessor&);
@@ -35,6 +35,10 @@ public:
     XYPad xy_pad;
     
 private:
+    
+    void valueTreePropertyChanged(ValueTree& treeWhosePropertyHasChanged, const Identifier &     property) override;
+    
+    void timerCallback() override;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     ZirconAudioProcessor& audioProcessor;

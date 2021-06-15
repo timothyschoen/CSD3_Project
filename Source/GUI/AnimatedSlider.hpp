@@ -17,8 +17,8 @@ struct AnimatedSlider : public Slider
         float value = getValue();
         float proportion = valueToProportionOfLength(value);
         
-        // Since our thumb is a little bigger than juce accounts for, we need to clip 0.03 off the edges
-        proportion = std::clamp<float>(proportion, 0.03f, 0.97f);
+        // Since our thumb is a little bigger than juce accounts for, we need to clip 0.05 off the edges
+        proportion = std::clamp<float>(proportion, 0.05f, 0.95f);
         
         value = proportionOfLengthToValue(proportion);
 

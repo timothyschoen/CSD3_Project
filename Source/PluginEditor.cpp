@@ -15,7 +15,9 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (655, 355);
+    
+    setResizable(false, false);
+    setSize (655, 345);
     
     setLookAndFeel(&lnf);
 
@@ -105,7 +107,9 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     addAndMakeVisible(nfilter_selector);
     addAndMakeVisible(quality_selector);
     
-    nfilter_selector.set_tooltips({"Filterbank density (15 filters)", "Filterbank density (25 filters)"});
+    
+    
+    nfilter_selector.set_tooltips({"Filterbank density (12 filters)", "Filterbank density (16 filters)"});
     quality_selector.set_tooltips({"Oversampling (1x)", "Oversampling (2x)", "Oversampling (4x)"});
     
     nfilter_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
@@ -141,6 +145,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     high_button.set_colour(4);
     smooth_button.set_colour(4);
     
+    main_tree.addListener(this);
+    
 }
 
 ZirconAudioProcessorEditor::~ZirconAudioProcessorEditor()
@@ -174,4 +180,65 @@ void ZirconAudioProcessorEditor::resized()
     smooth_button.setBounds(getWidth() - 100, 305, 80, 24);
     
     xy_pad.setBounds(0, 0, 655, 255);
+}
+
+void ZirconAudioProcessorEditor::valueTreePropertyChanged(ValueTree& treeWhosePropertyHasChanged, const Identifier &     property) {
+    
+    if(xy_pad.exclude_parameter_change) {
+        return;
+    }
+    
+    auto property_value = treeWhosePropertyHasChanged.getProperty(property);
+    
+    bool is_int = property_value.isInt();
+    bool is_bool = property_value.isBool();
+    
+    String name = property.toString();
+    String value = String((float)treeWhosePropertyHasChanged.getProperty(property), is_int ? 0 : 2);
+    
+    if(is_bool) {
+        value = (bool)property_value ? "On" : "Off";
+    }
+    if(name == "Intermodulation") {
+        name = "Num. filters";
+        value = String(value.getIntValue() ? 16.0 : 12.0, 0);
+    }
+    if(name == "Quality") {
+        value = (String[3]){"Low", "Medium", "High"}[value.getIntValue()];
+    }
+    if(name == "Kind") {
+        value = String(value.getIntValue() + 1.0, 0);
+    }
+    if(name == "Phase") {
+        value = (bool)property_value ? "-1" : "1";
+    }
+    
+    if(treeWhosePropertyHasChanged.getType().toString().contains("XYSlider")) {
+        int idx = treeWhosePropertyHasChanged.getParent().indexOf(treeWhosePropertyHasChanged) + 1;
+        name = "Slider " + String(idx);
+        
+        if(property == Identifier("X") || property == Identifier("Y")) {
+            
+            
+            double x = (double)treeWhosePropertyHasChanged.getProperty("X") * 8.1 + 0.12;
+            double y = 1.0 - (double)treeWhosePropertyHasChanged.getProperty("Y");
+            value = "X:" + String(std::clamp(x, 0.0, 8.0), 2) + ", Y:" +  String(std::clamp(y, 0.0, 1.0), 2);
+        }
+        else {
+            name += ": " + property.toString();
+        }
+    }
+
+    
+    xy_pad.selection_name = name;
+    xy_pad.selection_value = value;
+    xy_pad.repaint();
+    
+    startTimer(1500);
+}
+
+void ZirconAudioProcessorEditor::timerCallback()
+{
+    xy_pad.selection_name = "";
+    xy_pad.repaint();
 }

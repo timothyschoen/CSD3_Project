@@ -28,7 +28,7 @@ struct XYInspector : public Component
     ValueTree current_tree;
     SafePointer<XYSlider> selection = nullptr;
     
-    AnimatedSlider drive;
+    AnimatedSlider volume;
     AnimatedSlider mod_depth;
     AnimatedSlider mod_rate;
     

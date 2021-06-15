@@ -14,7 +14,7 @@ XYInspector::XYInspector() {
     enabled_button.setClickingTogglesState(true);
     enabled_button.setConnectedEdges(12);
     
-    drive.set_colour(0);
+    volume.set_colour(0);
     kind_select.set_colour(0);
 
     mod_depth.set_colour(2);
@@ -29,17 +29,17 @@ XYInspector::XYInspector() {
     phase_select.set_tooltips({"Invert Phase"});
     mod_depth.setTooltip("Modulation Depth");
     mod_rate.setTooltip("Modulation Frequency");
-    drive.setTooltip("Drive");
-    
-    drive.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
-        auto shape = Graphs::sine_to_square(1.0f - value, 0.7, bounds.getWidth(), bounds.getHeight(), 3);
+    volume.setTooltip("Volume");
+     
+    volume.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::sine_to_square(0.8 - (value / 2.0f), value, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
         
         g.setFont(Font(7));
         
         g.setColour(Colours::white);
-        g.drawText("DRV", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.drawText("VOL", bounds.getX() + 2, bounds.getY() + 2, 14, 7, Justification::topLeft);
         
         g.strokePath(shape, PathStrokeType(1.0f));
     };
@@ -53,7 +53,7 @@ XYInspector::XYInspector() {
     });
     
     
-    drive.setRange(0.0f, 1.0f);
+    volume.setRange(0.0f, 1.0f);
     
     delete_slider.setConnectedEdges(12);
     
@@ -102,7 +102,7 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(kind_select);
     settings.addAndMakeVisible(enabled_button);
    
-    settings.addAndMakeVisible(drive);
+    settings.addAndMakeVisible(volume);
     settings.addAndMakeVisible(phase_select);
     settings.addAndMakeVisible(shape_select);
     settings.addAndMakeVisible(mod_settings);
@@ -142,7 +142,7 @@ void XYInspector::resized()
     
     kind_select.setBounds(x_pos + item_width / 6.0f - 2, 35, item_width / 1.5f, 20);
     
-    drive.setBounds(x_pos, 70, item_width - 27, item_height);
+    volume.setBounds(x_pos, 70, item_width - 27, item_height);
     phase_select.setBounds(x_pos + (item_width - 20), 70, 23, 23);
 
     shape_select.setBounds(x_pos + item_width / 6.0f, 115, item_width / 1.5f, 20);
@@ -180,7 +180,10 @@ void XYInspector::set_selection(XYSlider* slider) {
 void XYInspector::attach_to_tree(ValueTree tree)
 {
     current_tree = tree;
-    drive.getValueObject().referTo(tree.getPropertyAsValue("Drive", nullptr));
+    volume.getValueObject().referTo(tree.getPropertyAsValue("Volume", nullptr));
+    
+    auto* parent = findParentComponentOfClass<XYPad>();
+    parent->exclude_parameter_change = true;
     
     phase_select.getValueObject().referTo(tree.getPropertyAsValue("Phase", nullptr));
     shape_select.getValueObject().referTo(tree.getPropertyAsValue("ModShape", nullptr));
@@ -199,5 +202,7 @@ void XYInspector::attach_to_tree(ValueTree tree)
     else {
         mod_rate.setRange(0.0f, 6.0f, 0.001);
     }
+    
+    parent->exclude_parameter_change = false;
 
 }

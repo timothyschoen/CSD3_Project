@@ -15,6 +15,9 @@
 struct XYPad : public Component, public ValueTree::Listener
 {
     
+    bool exclude_parameter_change = false;
+    String selection_name;
+    String selection_value;
     
     Component pad;
     ValueTree pad_tree = ValueTree("XYPad");

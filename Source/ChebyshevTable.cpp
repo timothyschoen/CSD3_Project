@@ -146,7 +146,6 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
     for(int b = 0; b < input.size(); b++) {
         // Don't process the expected target region is above either nyquist or the human hearing limit!
         if(!enabled || filter_freqs[b] * smoothed_order.getTargetValue() > std::min<float>(sample_rate / 2 - 1, 20000.0f)) {
-            output[b].fill(0.0f);
             continue;
         }
         
@@ -229,7 +228,7 @@ void ChebyshevTable::receive_message(const Identifier& id, float value)  {
     
         if(id == Identifier("X")) {
             //bool kind = changed_tree.getProperty("Kind");
-            order = (value + 0.0085f) * 8.2f;
+            order = value * 8.1 + 0.12;
             smoothed_order.setTargetValue(order);
             
             for(int b = 0; b < filter_freqs.size(); b++) {
@@ -239,10 +238,9 @@ void ChebyshevTable::receive_message(const Identifier& id, float value)  {
             }
         }
         else if(id == Identifier("Y")) {
-            float new_volume = (1.0f - value) * 1.5f;
-            // Apply volume scaling
-            volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
-            smoothed_volume.setTargetValue(volume);
+            float new_gain = 1.0f - value;
+            smoothed_scaling.setTargetValue(new_gain);
+            scaling = new_gain;
         }
         else if(id == Identifier("Kind")) {
             kind = value;
@@ -275,9 +273,11 @@ void ChebyshevTable::receive_message(const Identifier& id, float value)  {
         else if(id == Identifier("Enabled")) {
             enabled = value;
         }
-        else if(id == Identifier("Drive")) {
-            smoothed_scaling.setTargetValue(value);
-            scaling = value;
+        else if(id == Identifier("Volume")) {
+            float new_volume = value * 1.5f;
+            // Apply volume scaling
+            volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
+            smoothed_volume.setTargetValue(volume);
         }
         else if(id == Identifier("High")) {
             high_mode = !value;

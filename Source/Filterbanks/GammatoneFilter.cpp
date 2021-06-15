@@ -27,7 +27,7 @@
  * \b Acknowledgement: This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 644051
  */
 
-#define _USE_MATH_DEFINES // TODO: Test in windows! Might also be problematic for other platforms??
+#define _USE_MATH_DEFINES
 #include <JuceHeader.h>
 #include <cmath>
 #include "GammatoneFilter.hpp"

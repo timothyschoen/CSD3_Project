@@ -78,7 +78,7 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
         layout.add (std::make_unique<AudioParameterFloat> (ID + "X", ID + "X", 0, 1, 0.5f));
         layout.add (std::make_unique<AudioParameterFloat> (ID + "Y", ID + "Y", 0, 1, 0.5f));
         
-        layout.add (std::make_unique<AudioParameterFloat> (ID + "Drive", ID + "Drive", 0, 1, 0.5f));
+        layout.add (std::make_unique<AudioParameterFloat> (ID + "Volume", ID + "Volume", 0, 1, 0.5f));
         layout.add (std::make_unique<AudioParameterBool> (ID + "Phase", ID + "Phase", 0));
         layout.add (std::make_unique<AudioParameterBool> (ID + "Kind", ID + "Kind", 0));
         layout.add (std::make_unique<AudioParameterInt> (ID + "ModShape", ID + "Modulation Shape", 0, 15, 0));
@@ -368,6 +368,7 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         
         // Apply master gain
         read_bands[b] *= gain_block;
+        write_bands[b].clear();
     }
     
     // Apply distortion!
@@ -435,7 +436,8 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
         Identifier id = property;
         
         queue.enqueue([this, idx, id, value]() mutable {
-            chebyshev_distortions[idx]->receive_message(id, value);
+            if(idx < chebyshev_distortions.size())
+                chebyshev_distortions[idx]->receive_message(id, value);
         });
     }
     else if(property == Identifier("Intermodulation")) {
@@ -519,8 +521,6 @@ void ZirconAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
 void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // todo: check if correct data
-    
     proc_valuetree.state.copyPropertiesAndChildrenFrom(ValueTree::readFromData(data, sizeInBytes), nullptr);
     
     main_tree = proc_valuetree.state;
