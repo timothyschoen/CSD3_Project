@@ -321,7 +321,7 @@ struct ConcurrentQueueDefaultTraits
 	// Memory allocation can be customized if needed.
 	// malloc should return nullptr on failure, and handle alignment like std::malloc.
 #if defined(malloc) || defined(free)
-	// Gah, this is 2015, stop defining macros that break standard code already!
+	// Gah, this is 2020, stop defining macros that break standard code already!
 	// Work around malloc/free being special macros:
 	static inline void* WORKAROUND_malloc(size_t size) { return malloc(size); }
 	static inline void WORKAROUND_free(void* ptr) { return free(ptr); }

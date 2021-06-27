@@ -7,8 +7,8 @@
 */
 
 /**********************************************************************
-*          Copyright (c) 2015, Hogeschool voor de Kunsten Utrecht
-*                      Hilversum, the Netherlands
+*          Copyright (c) 2020, Hogeschool voor de Kunsten Utrecht
+*                      Utrecht, the Netherlands
 *                          All rights reserved
 ***********************************************************************
 *  This program is free software: you can redistribute it and/or modify

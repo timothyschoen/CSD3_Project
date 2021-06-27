@@ -22,7 +22,7 @@
  *
  * \b Copyright: University of Malaga and Imperial College London - 2018
  *
- * \b Licence: This copy of 3dti_AudioToolkit is licensed to you under the terms described in the 3DTI_AUDIOTOOLKIT_LICENSE file included in this distribution.
+ * \b Licence: This copy of 3dti_AudioToolkit is licensed to you under the terms described in the LICENCE file included in this distribution.
  *
  * \b Acknowledgement: This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 644051
  */
