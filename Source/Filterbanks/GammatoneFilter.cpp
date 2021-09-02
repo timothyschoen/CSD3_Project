@@ -33,17 +33,18 @@
 #include "GammatoneFilter.hpp"
 
 //////////////////////////////////////////////
-GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_order, float center_freq, float band_width)
+GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_order, float center_freq, float band_width, bool prepare_ir)
 {
     order = filter_order;
     
-    prev_z_real = new float[order]();
-    prev_z_imag = new float[order]();
-    prev_w_real = new float[order]();
-    prev_w_imag = new float[order]();
+   
+    prev_z_real.resize(order);
+    prev_z_imag.resize(order);
+    prev_w_real.resize(order);
+    prev_w_imag.resize(order);
     
-    temp_buffer_real = new float[order]();
-    temp_buffer_imag = new float[order]();
+    temp_buffer_real.resize(order);
+    temp_buffer_imag.resize(order);
     
     an = an_table[filter_order];
     cn = 2.0f * sqrt(pow(2, 1.0/(double)filter_order) - 1.0f);
@@ -51,6 +52,8 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     
     f0 = center_freq;
     sample_rate = rate;
+    
+    
     
     double phase_increment = f0 * MathConstants<float>::twoPi / sample_rate;
     cos_phase_increment = cos(phase_increment);
@@ -65,17 +68,41 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     z_real.resize(block_size, 0.0f);
     z_imag.resize(block_size, 0.0f);
     
+    if(!prepare_ir) return;
+    
+    // Calculate latency and prepare IR for freq domain processing
+    int max_delay = 8192;
+    auto test_filter = GammatoneFilter(sample_rate, max_delay, order, f0, b * an, false);
+
+    auto in_ir = std::vector<float>(max_delay);
+    auto out_ir = std::vector<float>(max_delay);
+    in_ir[1] = 1.0f;
+
+    
+    test_filter.process(in_ir.data(), out_ir.data(), max_delay);
+    
+    for(auto& sample : out_ir) sample = std::abs(sample);
+    
+    auto max_elt = std::max_element(out_ir.begin(), out_ir.end());
+
+    latency = max_elt - out_ir.begin();
+    
+    apply_window(out_ir, hamming_window);
+    
+    AudioBuffer<float> ir_buffer(1, max_delay);
+    ir_buffer.addFrom(0, 0, out_ir.data(), max_delay);
+   
+    convolution.loadImpulseResponse(AudioBuffer<float>(ir_buffer), sample_rate,  Convolution::Stereo::no,  Convolution::Trim::no,  Convolution::Normalise::no);
+    
+    convolution.prepare({sample_rate, (uint32)block_size, 1});
+    
+    
+    
 }
 
 //////////////////////////////////////////////
 GammatoneFilter::~GammatoneFilter()
 {
-    if(prev_z_real) delete[] prev_z_real;
-    if(prev_z_imag) delete[] prev_z_imag;
-    if(prev_w_real) delete[] prev_w_real;
-    if(prev_w_imag) delete[] prev_w_imag;
-    if(temp_buffer_real) delete[] temp_buffer_real;
-    if(temp_buffer_imag) delete[] temp_buffer_imag;
 }
 
 //////////////////////////////////////////////
@@ -84,6 +111,7 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
     
     for (int k = 0; k < num_samples; k++)
     {
+        // TODO: fix with circular buffer instead of branching
         float old_cos_phase = k == 0 ? last_cos : cos_phase[k-1];
         float old_sin_phase = k == 0 ? last_sin : sin_phase[k-1];
         
@@ -113,8 +141,26 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
     
 }
 
+void GammatoneFilter::process_freq(const float* inBuffer, float* outBuffer, int num_samples)
+{
+    AudioBuffer<float> in_buf(1, num_samples);
+    AudioBlock<float> in_block(in_buf);
+    
+    std::copy(inBuffer, inBuffer + num_samples, in_block.getChannelPointer(0));
+    
+    convolution.process(ProcessContextReplacing<float>(in_block));
+    
+    std::copy(in_block.getChannelPointer(0), in_block.getChannelPointer(0) + num_samples, outBuffer);
+}
+
 //////////////////////////////////////////////
 float GammatoneFilter::get_centre_freq()
 {
     return f0;
+}
+
+
+
+int GammatoneFilter::calculate_latency() {
+    return latency;
 }

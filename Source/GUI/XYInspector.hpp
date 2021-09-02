@@ -66,5 +66,7 @@ struct XYInspector : public Component
     
     TextButton enabled_button = TextButton("E");
     
+    
+    
     Component settings;
 };

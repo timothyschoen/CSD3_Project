@@ -39,6 +39,6 @@ class RMSEnvelope : public EnvelopeFollower {
 public:
     RMSEnvelope(ProcessSpec& spec, int bands, int oversample_factor);
     
-    void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) override;
+    void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, std::vector<AudioBlock<float>>& phase_bands, int num_samples) override;
 
 };

@@ -117,8 +117,8 @@ XYInspector::XYInspector() {
     
     addAndMakeVisible(settings);
     settings.addAndMakeVisible(kind_select);
-    settings.addAndMakeVisible(enabled_button);
    
+    settings.addAndMakeVisible(enabled_button);
     settings.addAndMakeVisible(volume);
     settings.addAndMakeVisible(phase_select);
     settings.addAndMakeVisible(shape_select);
@@ -126,7 +126,7 @@ XYInspector::XYInspector() {
     settings.addAndMakeVisible(mod_depth);
     settings.addAndMakeVisible(mod_rate);
     settings.addAndMakeVisible(delete_slider);
-    
+
     mod_rate.setSkewFactor(0.6);
     
     mod_settings.callback = [this](std::vector<int> state) {
@@ -162,11 +162,14 @@ void XYInspector::resized()
     volume.setBounds(x_pos, 70, item_width - 27, item_height);
     phase_select.setBounds(x_pos + (item_width - 20), 70, 23, 23);
 
-    shape_select.setBounds(x_pos + item_width / 6.0f, 115, item_width / 1.5f, 20);
-    mod_settings.setBounds(x_pos + item_width / 6.0f, 150, item_width / 1.5f, 20);
+    shape_select.setBounds(x_pos + item_width / 6.0f, 135, item_width / 1.5f, 20);
+    mod_settings.setBounds(x_pos + item_width / 6.0f, 170, item_width / 1.5f, 20);
     
-    mod_rate.setBounds(x_pos, 185, item_width, item_height);
-    mod_depth.setBounds(x_pos, 220, item_width, item_height);
+    mod_rate.setBounds(x_pos, 205, item_width, item_height);
+    mod_depth.setBounds(x_pos, 240, item_width, item_height);
+
+    
+  
 }
 
 void XYInspector::paint(Graphics& g)
@@ -176,6 +179,10 @@ void XYInspector::paint(Graphics& g)
     if(!selection) {
         g.setColour(Colours::white);
         g.drawText("No Selection", 0, getHeight() / 2.0f, getWidth(), 14, Justification::centred);
+    }
+    else {
+        g.setColour(Colour(176, 176, 176));
+        g.drawLine(0, 105, getWidth(), 105);
     }
 }
 

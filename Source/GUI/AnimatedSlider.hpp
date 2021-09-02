@@ -36,13 +36,23 @@ struct AnimatedSlider : public Slider
         float height = getHeight();
         float width = getWidth();
         
-        float thumb_width = (isHorizontal() ? height : width) * 1.3;
+        float thumb_width = 35.0;
         
         float value = getValue();
         float proportion = valueToProportionOfLength(value);
         
+        float thumb_extension = (thumb_width - (getHeight() * 0.5)) / 3.25;
+        
+        if(proportion * width < thumb_extension) {
+            proportion = thumb_extension / width;
+        }
+        if(proportion * width > width - thumb_extension) {
+            proportion = (width - thumb_extension) / width;
+        }
+        
         // Since our thumb is a little bigger than juce accounts for, we need to clip 0.05 off the edges
-        proportion = std::clamp<float>(proportion, 0.05f, 0.95f);
+        //proportion = std::clamp<float>(proportion, 0.02 + (thumb_width / width) * 0.0625, 0.97f);
+        
         
         value = proportionOfLengthToValue(proportion);
 
@@ -63,8 +73,12 @@ struct AnimatedSlider : public Slider
             g.setGradientFill(ColourTheme::add_shadow(theme_colour, height));
             g.fillRoundedRectangle(bounds, 3.0f);
             
+            g.setColour(Colour(178, 178, 178));
+            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f, 0.5f), 3.0f, 1.0f);
+            
             g.setColour(Colours::white);
-            g.drawRoundedRectangle(bounds.reduced(0.0f, 0.5f), 3.0f, 1.0f);
+            g.drawRoundedRectangle(bounds.reduced(0.5f, 0.5f), 3.0f, 1.0f);
+
             
             draw_image(g, proportion, bounds);
         }
@@ -91,12 +105,10 @@ struct AnimatedSlider : public Slider
         theme_colour = ColourTheme::highlights[colour];
     }
     
-    
     Colour theme_colour = ColourTheme::highlights[0];
     Value filter_type;
         
     AnimatedSlider() {
-        
         setTextBoxStyle(Slider::NoTextBox, true, 0, 0);
     }
 };

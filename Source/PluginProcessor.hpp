@@ -37,6 +37,10 @@
 #include "concurrentqueue.hpp"
 #include "ChebyshevTable.hpp"
 
+
+#include "MonoDistortion.hpp"
+#include "ChromaFilter.hpp"
+
 #include <JuceHeader.h>
 
 
@@ -127,14 +131,17 @@ private:
     AudioBlock<float> tone_block, gain_block;
     HeapBlock<char> tone_data, gain_data;
     
-    std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data;
-    std::vector<AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands;
+    std::vector<HeapBlock<char>> band_data, iamp_data, band_tone_data, write_data, inv_data, phase_data;
+    std::vector<AudioBlock<float>> inv_scaling, instant_amp, split_bands, write_bands, band_tone, read_bands, phase_bands;
     
     std::unique_ptr<Oversampling<float>> oversampler;
     
-    DryWetMixer<float> mixer;
+    DryWetMixer<float> mixer = DryWetMixer<float>(22050);
     
     AudioProcessorValueTreeState proc_valuetree;
+    
+    MonoDistortion mono_distortion;
+   // ChromaFilter chroma_filter;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ZirconAudioProcessor)

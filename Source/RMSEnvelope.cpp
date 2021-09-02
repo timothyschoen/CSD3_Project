@@ -45,7 +45,7 @@ RMSEnvelope::RMSEnvelope(ProcessSpec& spec, int bands, int oversample_factor) {
     
 }
 
-void RMSEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) {
+void RMSEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, std::vector<AudioBlock<float>>& phase_bands, int num_samples) {
     
     for(int b = 0; b < num_bands; b++) {
         auto out_band = inverse_bands[b].getSubBlock(0, num_samples);

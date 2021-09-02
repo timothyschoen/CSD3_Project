@@ -2,6 +2,14 @@
 
 #include <vector>
 
+
+using Sample = float;
+using Samples = std::vector<float>;
+
+
+using WindowFunc = std::function<Sample(float)>;
+
+
 /*
  Source: https://www.pdn.cam.ac.uk/other-pages/cnbh/files/publications/SVOSAnnexC1988.pdf
  */
@@ -9,16 +17,22 @@ class GammatoneFilter
 {
 public:
     
-    GammatoneFilter(double sample_rate, int block_size, unsigned filter_order, float center_freq, float band_width);
+    GammatoneFilter(double sample_rate, int block_size, unsigned filter_order, float center_freq, float band_width, bool prepare_ir = true);
     
     ~GammatoneFilter();
     
     void process(const float* inBuffer, float* outBuffer, int num_samples);
     
+    void process_freq(const float* inBuffer, float* outBuffer, int num_samples);
+    
     float get_centre_freq();
+    
+    int calculate_latency();
     
     
 private:
+    
+    int latency = 0;
     
     double sample_rate;              // Keep the sampling rate at which audio samples were taken
     unsigned order;                   // Keep the filter order
@@ -29,13 +43,15 @@ private:
     double cos_phase_increment;       // phase increment of the filter
     double sin_phase_increment;       // phase increment of the filter
     double eq_constant;
-    float* prev_z_real;               // store previous samples between audio buffers
-    float* prev_z_imag;
-    float* prev_w_real;
-    float* prev_w_imag;
     
-    float* temp_buffer_real;
-    float* temp_buffer_imag;
+    
+    std::vector<float> prev_z_real;               // store previous samples between audio buffers
+    std::vector<float> prev_z_imag;
+    std::vector<float> prev_w_real;
+    std::vector<float> prev_w_imag;
+    
+    std::vector<float> temp_buffer_real;
+    std::vector<float> temp_buffer_imag;
 
     
     std::vector<float> cos_phase;
@@ -52,6 +68,8 @@ private:
     float last_sin = 0;
     
     int read_pos = 0;
+    
+    dsp::Convolution convolution;
     
     //precomputed using python3's builtin bignums
     inline static double an_table[] =
@@ -88,4 +106,26 @@ private:
         0.3334703374675882,
         0.3277208488905608,
     };
+    
+    
+    
+    static inline Sample no_window(float progress) {
+        return 0.5;
+    }
+
+    static inline Sample hamming_window(float progress) {
+        return 0.54 - 0.46 * cos(2.0 * M_PI * progress);
+    }
+
+    static inline Sample hanning_window(float progress) {
+        return 0.5 - 0.5 * cos(2.0 * M_PI * progress);
+    }
+
+    static void apply_window(std::vector<Sample>& samples, WindowFunc window_func) {
+        for (int i = 0; i < samples.size(); i++) {
+            const auto progress = (i - 1.0) / (samples.size() - 1.0);
+            samples[i] *= window_func(progress);
+        }
+    }
+
 };

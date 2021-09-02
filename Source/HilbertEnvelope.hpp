@@ -51,7 +51,7 @@ public:
     
     void clear();
     
-    void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) override;
+    void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, std::vector<AudioBlock<float>>& phase_bands, int num_samples) override;
     
 private:
     std::vector<std::vector<HilbertState>> states;

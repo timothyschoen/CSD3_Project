@@ -90,7 +90,6 @@ void GammatoneFilterBank::add_filter(unsigned _order, float _freq, float _erb)
     for(int ch = 0; ch < num_channels; ch++) {
         filters[ch].push_back(std::unique_ptr<GammatoneFilter>(new GammatoneFilter(sample_rate, block_size, _order, _freq, _erb)));
     }
-   
 }
 
 

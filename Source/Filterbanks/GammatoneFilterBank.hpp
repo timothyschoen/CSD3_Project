@@ -36,4 +36,8 @@ private:
     float bw;
     int block_size;
     int num_channels;
+    
+    
+    
+    
 };

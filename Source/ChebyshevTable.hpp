@@ -82,7 +82,7 @@ public:
     
     ChebyshevTable(const ProcessSpec& spec, const ChebyshevTable& to_copy);
     
-    void process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output);
+    void process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output, std::vector<AudioBlock<float>>& phase);
 
     void sync_with_playhead(AudioPlayHead* playhead);
     

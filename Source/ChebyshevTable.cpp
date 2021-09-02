@@ -32,6 +32,23 @@ bool ChebyshevFactory::fill_tables() {
         int order = i;
         
         first_tables[i].initialise([order](float x) mutable {
+            
+            return sinf((x + 1.0) * M_PI * order);
+            /*
+            if(x == 0.0f) return 0.0f;
+            if(order == 0) return 0.0f;
+                        
+            float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
+            float y = cos(acos(x) * order) + offset;
+            
+            jassert(std::isfinite(y));
+            
+            return y; */
+            
+        }, -1.0f, 1.0f, 1<<11);
+        
+        
+        second_tables[i].initialise([order](float x) mutable {
             if(x == 0.0f) return 0.0f;
             if(order == 0) return 0.0f;
                         
@@ -42,24 +59,7 @@ bool ChebyshevFactory::fill_tables() {
             
             return y;
             
-        }, -1.0f, 1.0f, 1<<8);
-        
-        
-        second_tables[i].initialise([order](float x) mutable {
-            if(x == 0.0f) return 0.0f;
-            
-            if(order == 0) return (float)tanh(x * 2.0f);
-            if(x == -1.0f) x += 1e-5;
-            if(x == 1.0f) x -= 1e-5;
-            
-            float offset = (order - 1 & 1) - (((order & 3) == 0) * 2);
-            float y = sin((order + 1.0f) * acos(x)) / sin(acos(x)) + offset;
-
-            jassert(std::isfinite(y));
-            
-            return y;
-            
-        }, -1.0f, 1.0f, 1<<8);
+        }, -1.0f, 1.0f, 1<<11);
     }
     return true;
 }
@@ -140,7 +140,7 @@ ChebyshevTable::ChebyshevTable(const ProcessSpec& spec, const ChebyshevTable& to
 }
 
 
-void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output) {
+void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<AudioBlock<float>>& output, std::vector<AudioBlock<float>>& phase) {
     
     int num_samples = input[0].getNumSamples();
     
@@ -193,10 +193,12 @@ void ChebyshevTable::process(std::vector<AudioBlock<float>>& input, std::vector<
                 
                 // Calculate mix
                 float amp = order - (float)first_order;
-
+                
+                float phase_value = kind ? buffer.getSample(ch, n) : jmap<float>(phase[b].getSample(ch, n), -M_PI, M_PI, -1.0, 1.0);
+                
                 // Get values from wavetables and mix together
-                float y1 = (*current_table)[first_order].processSample(channel_ptr[n]) * (1.0f - amp);
-                float y2 = (*current_table)[second_order].processSample(channel_ptr[n]) * amp;
+                float y1 = (*current_table)[first_order].processSample(phase_value) * (1.0f - amp);
+                float y2 = (*current_table)[second_order].processSample(phase_value) * amp;
                 
                 channel_ptr[n] = (y1 + y2);
                 channel_ptr[n] *= invert_phase ? -1.0f : 1.0f;
@@ -296,7 +298,7 @@ void ChebyshevTable::receive_message(const Identifier& id, float value)  {
             volume = pow((new_volume + 1.0f), 2.0f) - 1.0f;
             smoothed_volume.setTargetValue(volume);
         }
-        else if(id == Identifier("High")) {
+        else if(id == Identifier("Disharmonic")) {
             high_mode = !value;
             
             // Apply mode to filters

@@ -70,7 +70,7 @@ void XYPad::mouseDown(const MouseEvent& e)
 
 void XYPad::resized()
 {
-    int inspector_width = 185;
+    int inspector_width = 205;
 
     pad.setBounds(0, 0, getWidth() - inspector_width, getHeight());
     new_slider.setBounds(pad.getWidth() - 25, pad.getHeight() - 25, 25, 25);
@@ -80,6 +80,10 @@ void XYPad::resized()
 void XYPad::paint(Graphics& g)
 {
     g.fillAll(ColourTheme::main_bg);
+    
+    int inspector_width = 205;
+    g.setColour(Colour(112, 112, 112));
+    g.drawLine(getWidth() - inspector_width, 0, getWidth() - inspector_width, getHeight());
     
     int line_spacing = pad.getWidth() / num_lines;
     

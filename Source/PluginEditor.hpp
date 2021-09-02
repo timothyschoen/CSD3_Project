@@ -67,12 +67,12 @@ private:
     // access the processor object that created it.
     ZirconAudioProcessor& audioProcessor;
     
-    AnimatedSlider gain_slider, tone_slider, volume_slider, wet_slider;
+    AnimatedSlider min_freq, max_freq, volume_slider, wet_slider;
     
     SelectorComponent nfilter_selector = SelectorComponent({"12", "18"});
     SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});
 
-    SelectorComponent high_button = SelectorComponent({"High"});
+    SelectorComponent high_button = SelectorComponent({"Disharmonic"});
     SelectorComponent smooth_button = SelectorComponent({"Smooth"});
 
     Dark_LookAndFeel lnf;

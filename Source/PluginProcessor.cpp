@@ -29,6 +29,8 @@
 #include "HilbertEnvelope.hpp"
 #include "RMSEnvelope.hpp"
 
+
+
 #include "Filterbanks/GammatoneFilterBank.hpp"
 #include "Filterbanks/ResonBands.hpp"
 //==============================================================================
@@ -69,20 +71,20 @@ AudioProcessorValueTreeState::ParameterLayout ZirconAudioProcessor::createParame
     
     // First initialise our own value tree
     main_tree.setProperty("Intermodulation", 0, nullptr);
-    main_tree.setProperty("Tone", 1.0f, nullptr);
-    main_tree.setProperty("Gain", 1.0f, nullptr);
+    main_tree.setProperty("MaxFreq", 1.0f, nullptr);
+    main_tree.setProperty("MinFreq", 1.0f, nullptr);
     main_tree.setProperty("Volume", 1.0f, nullptr);
     main_tree.setProperty("Wet", 0.5f, nullptr);
-    main_tree.setProperty("High", false, nullptr);
+    main_tree.setProperty("Disharmonic", false, nullptr);
     main_tree.setProperty("Smooth", false, nullptr);
     main_tree.setProperty("Quality", 1, nullptr);
     
     // Then initialise audio processor value tree
-    layout.add (std::make_unique<AudioParameterFloat> ("Tone", "Tone", 0.0f, 1.0f, 1.0f));
-    layout.add (std::make_unique<AudioParameterFloat> ("Gain", "Gain", 0.0f, 1.0f, 0.5f));
+    layout.add (std::make_unique<AudioParameterFloat> ("MaxFreq", "MaxFreq", 0.0f, 1.0f, 1.0f));
+    layout.add (std::make_unique<AudioParameterFloat> ("MinFreq", "MinFreq", 0.0f, 1.0f, 0.5f));
     layout.add (std::make_unique<AudioParameterFloat> ("Volume", "Volume", 0.0f, 1.0f, 0.5f));
     layout.add (std::make_unique<AudioParameterFloat> ("Wet", "Wet", 0.0f, 1.0f, 0.5f));
-    layout.add (std::make_unique<AudioParameterBool> ("High", "High", false));
+    layout.add (std::make_unique<AudioParameterBool> ("Disharmonic", "Disharmonic", false));
     layout.add (std::make_unique<AudioParameterBool> ("Smooth", "Smooth", false));
     
     // Don't add Intermodulation and Quality as automatable parameters: these are clicky parameters that shouldn't be changed during playback
@@ -217,11 +219,15 @@ void ZirconAudioProcessor::set_num_bands(int freq_range_overlap, bool reset)
     inv_data.clear();
     inv_data.resize(num_bands);
     
+    phase_data.clear();
+    phase_data.resize(num_bands);
+    
     split_bands.resize(num_bands);
     band_tone.resize(num_bands);
     instant_amp.resize(num_bands);
     write_bands.resize(num_bands);
     inv_scaling.resize(num_bands);
+    phase_bands.resize(num_bands);
     
     tone_block = AudioBlock<float>(tone_data, 1, block_size * oversample_factor);
     gain_block = AudioBlock<float>(gain_data, num_channels, block_size * oversample_factor);
@@ -236,12 +242,18 @@ void ZirconAudioProcessor::set_num_bands(int freq_range_overlap, bool reset)
         write_bands[i] = AudioBlock<float>(write_data[i], num_channels, block_size * oversample_factor);
         
         inv_scaling[i] = AudioBlock<float>(inv_data[i], num_channels, block_size * oversample_factor);
+        phase_bands[i] = AudioBlock<float>(phase_data[i], num_channels, block_size * oversample_factor);
         
         split_bands[i].fill(0.0f);
         band_tone[i].fill(0.0f);
         write_bands[i].fill(0.0f);
         inv_scaling[i].fill(0.0f);
+        phase_bands[i].fill(0.0f);
     }
+    
+    
+    
+    mixer.setWetLatency(mono_distortion.chroma_filter.get_latency());
 }
 
 void ZirconAudioProcessor::parameterChanged (const String &parameter_id, float new_value) {
@@ -297,9 +309,9 @@ void ZirconAudioProcessor::set_oversample_rate(int new_oversample_factor)
     master_volume.reset(sample_rate * oversample_factor, 0.02f);
     tone_cutoff.reset(sample_rate * oversample_factor, 0.02f);
     
-    gain.setCurrentAndTargetValue(main_tree.getProperty("Gain"));
+    gain.setCurrentAndTargetValue(main_tree.getProperty("MinFreq"));
     master_volume.setCurrentAndTargetValue(main_tree.getProperty("Volume"));
-    tone_cutoff.setCurrentAndTargetValue(main_tree.getProperty("Tone"));
+    tone_cutoff.setCurrentAndTargetValue(main_tree.getProperty("MaxFreq"));
     mixer.setWetMixProportion(main_tree.getProperty("Wet"));
     
     set_num_bands((int)main_tree.getProperty("Intermodulation"), true);
@@ -356,8 +368,29 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     
     mixer.pushDrySamples(in_block);
     
-    auto oversampled = oversampler->processSamplesUp(in_block);
+    Samples in_samples(in_block.getNumSamples());
+    Samples out_samples(in_block.getNumSamples());
+
+    std::copy(in_block.getChannelPointer(0), in_block.getChannelPointer(0) + in_block.getNumSamples(), in_samples.begin());
     
+    
+    
+    mono_distortion.process(in_samples, out_samples);
+    /*
+    auto filtered = chroma_filter.process(in_samples);
+    
+    for(int f = 0; f < filtered.size(); f++) {
+        for(int n = 0; n < filtered[f].size(); n++) {
+            out_samples[n] += filtered[f][n];
+        }
+    } */
+    
+    std::copy(out_samples.begin(), out_samples.end(), in_block.getChannelPointer(0));
+    
+    
+    //auto oversampled = oversampler->processSamplesUp(in_block);
+    
+    /*
     // Get smoothed tone value multiplied by 1/5th sample rate
     tone_block.fill(0.2f * sample_rate);
     tone_block *= tone_cutoff;
@@ -372,7 +405,7 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     
     read_bands = split_bands;
     
-    envelope_follower->process(read_bands, instant_amp, inv_scaling, reduced_block_size);
+    envelope_follower->process(read_bands, instant_amp, inv_scaling, phase_bands, reduced_block_size);
     
     for(int b = read_bands.size()-1; b >= 0; b--) {
         
@@ -390,7 +423,7 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     
     // Apply distortion!
     for(int h = 0; h < chebyshev_distortions.size(); h++) {
-        chebyshev_distortions[h]->process(read_bands, write_bands);
+        chebyshev_distortions[h]->process(read_bands, write_bands, phase_bands);
     }
     
     for(int b = 0; b < write_bands.size(); b++) {
@@ -416,9 +449,11 @@ void ZirconAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         write_bands[b].clear();
     }
     
-    oversampler->processSamplesDown(in_block);
+    oversampler->processSamplesDown(in_block); */
     
     mixer.mixWetSamples(in_block);
+    
+
     
     // Apply master volume
     in_block *= master_volume;
@@ -437,6 +472,7 @@ void ZirconAudioProcessor::valueTreeChildRemoved(ValueTree &parent_tree, ValueTr
     if(removed_child.getType() == Identifier("XYSlider")) {
         queue.enqueue([this, idx]() mutable {
             chebyshev_distortions.remove(idx);
+            mono_distortion.mute(idx);
         });
     }
 }
@@ -444,17 +480,21 @@ void ZirconAudioProcessor::valueTreeChildRemoved(ValueTree &parent_tree, ValueTr
 void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, const Identifier &property)
 {
     float value = changed_tree.getProperty(property);
-    
+    Identifier id = property;
     // When a property changes on a subtree named XYSlider,
     // forward the messge to the chebychev distortion
     if(changed_tree.getType() == Identifier("XYSlider")) {
         int idx = changed_tree.getParent().indexOf(changed_tree);
         float value = changed_tree.getProperty(property);
-        Identifier id = property;
+       
         
         queue.enqueue([this, idx, id, value]() mutable {
             if(idx < chebyshev_distortions.size())
                 chebyshev_distortions[idx]->receive_message(id, value);
+        });
+        
+        queue.enqueue([this, idx, id, value]() mutable {
+            mono_distortion.receive_message(id, value, idx);
         });
     }
     else if(property == Identifier("Intermodulation")) {
@@ -462,14 +502,16 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
             set_num_bands((int)value);
         });
     }
-    else if(property == Identifier("Tone")) {
-        queue.enqueue([this, value]() mutable {
-            tone_cutoff.setTargetValue(value);
+    else if(property == Identifier("MaxFreq")) {
+        queue.enqueue([this, value, id]() mutable {
+            mono_distortion.receive_message(id, value, 0);
+            //tone_cutoff.setTargetValue(value);
         });
     }
-    else if(property == Identifier("Gain")) {
-        queue.enqueue([this, value]() mutable {
-            gain.setTargetValue(value);
+    else if(property == Identifier("MinFreq")) {
+        queue.enqueue([this, value, id]() mutable {
+            mono_distortion.receive_message(id, value, 0);
+            //gain.setTargetValue(value);
         });
     }
     else if(property == Identifier("Wet")) {
@@ -498,12 +540,15 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
             }
         });
     }
-    else if(property == Identifier("High")) {
+    else if(property == Identifier("Disharmonic")) {
         queue.enqueue([this, property, value]() mutable {
             high_mode = value;
+            
+            mono_distortion.receive_message("Disharmonic", value, 0);
+            
             for(auto& distortion : chebyshev_distortions)
             {
-                distortion->receive_message("High", value);
+                distortion->receive_message("Disharmonic", value);
             }
         });
     }
@@ -549,7 +594,7 @@ void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInByte
     if(editor) {
         editor->xy_pad.update_tree(main_tree.getChildWithName("XYPad"));
         editor->num_filters.referTo(main_tree.getPropertyAsValue("Intermodulation", nullptr));
-        editor->high_mode.referTo(main_tree.getPropertyAsValue("High", nullptr));
+        editor->high_mode.referTo(main_tree.getPropertyAsValue("Disharmonic", nullptr));
         editor->smooth_mode.referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
     }
     
@@ -559,7 +604,7 @@ void ZirconAudioProcessor::setStateInformation (const void* data, int sizeInByte
         });
     }
     
-    main_tree.sendPropertyChangeMessage("High");
+    main_tree.sendPropertyChangeMessage("Disharmonic");
     main_tree.sendPropertyChangeMessage("Smooth");
     main_tree.sendPropertyChangeMessage("Intermodulation");
 }

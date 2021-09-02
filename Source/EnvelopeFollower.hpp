@@ -31,6 +31,6 @@ struct EnvelopeFollower {
     
     virtual ~EnvelopeFollower() {};
 
-    virtual void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) = 0;
+    virtual void process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, std::vector<AudioBlock<float>>& phase_bands, int num_samples) = 0;
     
 };

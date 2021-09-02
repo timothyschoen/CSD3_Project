@@ -29,7 +29,7 @@
 #include <algorithm>
 
 HilbertEnvelope::HilbertEnvelope(ProcessSpec& spec, int bands, int oversample_factor) {
-    oversamp = oversample_factor;
+    oversamp = 1; // maybe change this?
     num_channels = spec.numChannels;
     num_bands = bands;
     
@@ -71,7 +71,7 @@ void HilbertEnvelope::clear() {
     }
 }
 
-void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, int num_samples) {
+void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, std::vector<AudioBlock<float>>& out_bands, std::vector<AudioBlock<float>>& inverse_bands, std::vector<AudioBlock<float>>& phase_bands, int num_samples) {
     
     num_samples /= oversamp;
     
@@ -88,6 +88,8 @@ void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, st
             for(int i = 0; i < num_samples; i++) {
                 auto* input = in_bands[b].getChannelPointer(ch);
                 auto* output = out_bands[b].getChannelPointer(ch);
+                auto* phase_out = phase_bands[b].getChannelPointer(ch);
+                
                 auto inverse = inverse_bands[b].getChannelPointer(ch);
                 
                 float r_out, i_out;
@@ -147,7 +149,9 @@ void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, st
                 s[31] = s[30];
                 s[30] = xa + 0.061990080f * i_out;
                 
-                float out_value = std::abs(std::complex(r_out, i_out));
+                auto complex_output = std::complex(r_out, i_out);
+                float out_value = std::abs(complex_output);
+                float phase_value = std::arg(complex_output);
                 
                 if(out_value < release_state) {
                     out_value = out_value + alpha_release * (release_state - out_value);
@@ -158,6 +162,7 @@ void HilbertEnvelope::process(const std::vector<AudioBlock<float>>& in_bands, st
                 for(int o = 0; o < oversamp; o++) {
                     output[i * oversamp + o] = 1.0f / out_value;
                     inverse[i * oversamp + o] = out_value;
+                    phase_out[i * oversamp + o] = phase_value;
                 }
             }
         }
