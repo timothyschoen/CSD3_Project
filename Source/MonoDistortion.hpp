@@ -43,7 +43,7 @@ struct MonoDistortion
     void mute(int idx);
     
 
-    ChromaFilter chroma_filter = ChromaFilter(43, 79); // temporarily public
+    ChromaFilter chroma_filter; // temporarily public
     
 private:
     

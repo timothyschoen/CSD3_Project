@@ -9,6 +9,7 @@ using Samples = std::vector<float>;
 
 using WindowFunc = std::function<Sample(float)>;
 
+#define ENABLE_FREQDOMAIN false
 
 /*
  Source: https://www.pdn.cam.ac.uk/other-pages/cnbh/files/publications/SVOSAnnexC1988.pdf
@@ -23,7 +24,11 @@ public:
     
     void process(const float* inBuffer, float* outBuffer, int num_samples);
     
+#if ENABLE_FREQDOMAIN
+    dsp::Convolution convolution;
+    
     void process_freq(const float* inBuffer, float* outBuffer, int num_samples);
+#endif
     
     float get_centre_freq();
     
@@ -69,7 +74,7 @@ private:
     
     int read_pos = 0;
     
-    dsp::Convolution convolution;
+    
     
     //precomputed using python3's builtin bignums
     inline static double an_table[] =

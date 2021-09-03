@@ -41,8 +41,8 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     TopLevelWindow* w = TopLevelWindow::getTopLevelWindow(0);
     w->setLookAndFeel(&lnf);
 
-    addAndMakeVisible(max_freq);
-    addAndMakeVisible(min_freq);
+    addAndMakeVisible(freq_range);
+    addAndMakeVisible(saturation);
     
     addAndMakeVisible(volume_slider);
     addAndMakeVisible(wet_slider);
@@ -54,28 +54,47 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     
     xy_pad.inspector.allow_stereo(p.getTotalNumOutputChannels() > 1);
     
-    max_freq.setRange(0.0f, 1.0f, 1.0f / 127.0f);
-    min_freq.setRange(0.0f, 1.0f, 1.0f / 127.0f);
+    freq_range.setSliderStyle(Slider::SliderStyle::TwoValueHorizontal);
+    
+    freq_range.setRange(0.0f, 1.0f, 1.0f / 127.0f);
+    saturation.setRange(0.0f, 1.0f, 1.0f / 127.0f);
     volume_slider.setRange(0.0f, 1.0f);
     wet_slider.setRange(0.0f, 1.0f);
     
-    max_freq.setSkewFactor(0.3);
+   // freq_range.setSkewFactor(0.3);
     
-    max_freq.set_colour(1);
-    min_freq.set_colour(1);
+    freq_range.set_colour(1);
+    saturation.set_colour(1);
+    
+    freq_range.setMinValue(0.2);
+    freq_range.setMaxValue(0.7);
     
     wet_slider.set_colour(3);
     volume_slider.set_colour(3);
     
-    min_freq.setTooltip("Minimum frequency");
+    saturation.setTooltip("Saturation");
     wet_slider.setTooltip("Wet");
-    max_freq.setTooltip("Maximum frequency");
+    freq_range.setTooltip("Frequency range");
     volume_slider.setTooltip("Volume");
     
     high_button.set_tooltips({"Disharmonic mode"});
     smooth_button.set_tooltips({"Smooth mode"});
     
-    max_freq.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+    freq_range.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+        auto shape = Graphs::draw_filter(value, 0.0f, bounds.getWidth(), bounds.getHeight(), 2, 0.5);
+        
+        shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
+        
+        g.setColour(Colours::white.withAlpha(0.5f));
+        g.fillPath(shape);
+        
+        g.setFont(Font(7));
+        g.setColour(Colours::white);
+        g.drawText("MIN", bounds.getX() + 3, bounds.getY() + 2, 17, 7, Justification::topLeft);
+        g.strokePath(shape, PathStrokeType(1.0f));
+    };
+    
+    freq_range.draw_image_max = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::draw_filter(value, 0.0f, bounds.getWidth(), bounds.getHeight(), 0, 0.5);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
@@ -89,7 +108,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
         g.strokePath(shape, PathStrokeType(1.0f));
     };
     
-    min_freq.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
+    saturation.draw_image = [this](Graphics& g, float value, Rectangle<float> bounds){
         auto shape = Graphs::sine_to_square(0.8 - (value / 2.0f), value, bounds.getWidth(), bounds.getHeight(), 3);
         
         shape.applyTransform(AffineTransform::translation(bounds.getX(), bounds.getY()));
@@ -97,7 +116,7 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
         g.setFont(Font(7));
         g.setColour(Colours::white);
         
-        g.drawText("MIN", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
+        g.drawText("SAT", bounds.getX() + 3, bounds.getY() + 2, 14, 7, Justification::topLeft);
         g.strokePath(shape, PathStrokeType(1.0f));
     };
     
@@ -135,8 +154,10 @@ ZirconAudioProcessorEditor::ZirconAudioProcessorEditor (ZirconAudioProcessor& p)
     smooth_button.getValueObject().referTo(main_tree.getPropertyAsValue("Smooth", nullptr));
     quality_selector.getValueObject().referTo(main_tree.getPropertyAsValue("Quality", nullptr));
     
-    max_freq.getValueObject().referTo(main_tree.getPropertyAsValue("MaxFreq", nullptr));
-    min_freq.getValueObject().referTo(main_tree.getPropertyAsValue("MinFreq", nullptr));
+    freq_range.getMinValueObject().referTo(main_tree.getPropertyAsValue("MinFreq", nullptr));
+    freq_range.getMaxValueObject().referTo(main_tree.getPropertyAsValue("MaxFreq", nullptr));
+    
+    //saturation.getValueObject().referTo(main_tree.getPropertyAsValue("Saturation", nullptr));
     volume_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Volume", nullptr));
     wet_slider.getValueObject().referTo(main_tree.getPropertyAsValue("Wet", nullptr));
     
@@ -195,8 +216,8 @@ void ZirconAudioProcessorEditor::resized()
     nfilter_selector.setBounds(20, pad_height + 15, 80, 24);
     quality_selector.setBounds(20, pad_height + 50, 80, 24);
     
-    min_freq.setBounds(120, pad_height + 15, 215, 24);
-    max_freq.setBounds(120, pad_height + 50, 215, 24);
+    saturation.setBounds(120, pad_height + 15, 215, 24);
+    freq_range.setBounds(120, pad_height + 50, 215, 24);
     
     wet_slider.setBounds(355, pad_height + 15, 215, 24);
     volume_slider.setBounds(355, pad_height + 50, 215, 24);

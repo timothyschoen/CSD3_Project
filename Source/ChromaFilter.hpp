@@ -35,11 +35,18 @@ struct ChromaFilter
     
     std::vector<float> frequencies;
     
-    int start, end;
+    int skip_size = 1;
     
-    ChromaFilter(int midi_start, int midi_end) : start(midi_start), end(midi_end) {
+    int start = 43, end = 79;
+    
+    int m_start = 20;
+    
+    ChromaFilter() {
         
-        if(midi_start <= midi_end) {
+        int midi_start = m_start;
+        int midi_end = 110;
+        
+        if(midi_start >= midi_end) {
             midi_start = midi_end - 12;
         }
         
@@ -48,10 +55,10 @@ struct ChromaFilter
         
         for (int m = midi_start; m < midi_end; m++)
         {
-            frequencies[m - midi_start] = pow(2, (m - 69.0f) / 12.0f) * 440.0f;
+            frequencies[m - m_start] = pow(2, (m - 69.0f) / 12.0f) * 440.0f;
         }
         
-        output_buffer.resize(num_notes, Samples(block_size));
+        output_buffer.resize(num_notes / skip_size, Samples(block_size));
         
         for(int freq = 0; freq < num_notes; freq++) {
             
@@ -79,12 +86,18 @@ struct ChromaFilter
     
     std::vector<Samples> process(Samples channel) {
         
-        for(int freq = 0; freq < num_notes; freq++) {
-            filters[freq]->process(channel.data(), output_buffer[freq].data(), channel.size());
+        for(int freq = start; freq < end; freq += skip_size) {
+            int filter_idx = freq - m_start;
+            int band_idx = (freq - start) / skip_size;
             
-            for(auto& sample : output_buffer[freq]) {
-                delays[freq]->pushSample(0, sample);
-                sample = delays[freq]->popSample(0);
+            jassert(filter_idx >= 0);
+            jassert(band_idx >= 0);
+            
+            filters[filter_idx]->process(channel.data(), output_buffer[band_idx].data(), channel.size());
+            
+            for(auto& sample : output_buffer[band_idx]) {
+                delays[filter_idx]->pushSample(0, sample);
+                sample = delays[filter_idx]->popSample(0);
             }
         }
         
@@ -93,6 +106,25 @@ struct ChromaFilter
     
     int get_latency() {
         return latency;
+    }
+    
+    void set_density(int density) {
+        skip_size = density;
+        output_buffer.resize(num_notes / skip_size, Samples(block_size, 0.0f));
+    }
+    
+    void set_start(int new_start) {
+        start = new_start;
+        num_notes = end - start;
+        
+        output_buffer.resize(num_notes / skip_size, Samples(block_size, 0.0f));
+    }
+    
+    void set_end(int new_end) {
+        end = new_end;
+        num_notes = end - start;
+        
+        output_buffer.resize(num_notes / skip_size, Samples(block_size, 0.0f));
     }
     
     

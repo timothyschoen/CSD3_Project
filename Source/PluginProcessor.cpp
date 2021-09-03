@@ -498,8 +498,9 @@ void ZirconAudioProcessor::valueTreePropertyChanged (ValueTree &changed_tree, co
         });
     }
     else if(property == Identifier("Intermodulation")) {
-        queue.enqueue([this, value]() mutable {
-            set_num_bands((int)value);
+        queue.enqueue([this, id, value]() mutable {
+            //set_num_bands((int)value);
+            mono_distortion.receive_message(id, value, 0);
         });
     }
     else if(property == Identifier("MaxFreq")) {

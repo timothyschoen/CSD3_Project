@@ -67,7 +67,7 @@ private:
     // access the processor object that created it.
     ZirconAudioProcessor& audioProcessor;
     
-    AnimatedSlider min_freq, max_freq, volume_slider, wet_slider;
+    AnimatedSlider saturation, freq_range, volume_slider, wet_slider;
     
     SelectorComponent nfilter_selector = SelectorComponent({"12", "18"});
     SelectorComponent quality_selector = SelectorComponent({"L", "M", "H"});

@@ -75,7 +75,7 @@ void MonoDistortion::receive_message(const Identifier& id, float value, int idx)
         int new_value = jmap<float>(value, 20, 110);
         if(new_value != min_freq) {
             min_freq = new_value;
-            //chroma_filter = ChromaFilter(min_freq, max_freq);
+            chroma_filter.set_start(min_freq);
         }
         
         
@@ -84,8 +84,12 @@ void MonoDistortion::receive_message(const Identifier& id, float value, int idx)
         int new_value = jmap<float>(value, 20, 110);
         if(new_value != max_freq) {
             max_freq = new_value;
-            //chroma_filter = ChromaFilter(min_freq, max_freq);
+            chroma_filter.set_end(max_freq);
         }
+    }
+    
+    else if(id == Identifier("Intermodulation")) {
+        chroma_filter.set_density(2 - value);
     }
     /*
      

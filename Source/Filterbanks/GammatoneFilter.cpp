@@ -87,6 +87,7 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
 
     latency = max_elt - out_ir.begin();
     
+#if ENABLE_FREQDOMAIN
     apply_window(out_ir, hamming_window);
     
     AudioBuffer<float> ir_buffer(1, max_delay);
@@ -95,7 +96,7 @@ GammatoneFilter::GammatoneFilter(double rate, int block_size, unsigned filter_or
     convolution.loadImpulseResponse(AudioBuffer<float>(ir_buffer), sample_rate,  Convolution::Stereo::no,  Convolution::Trim::no,  Convolution::Normalise::no);
     
     convolution.prepare({sample_rate, (uint32)block_size, 1});
-    
+#endif
     
     
 }
@@ -141,6 +142,7 @@ void GammatoneFilter::process(const float* inBuffer, float* outBuffer, int num_s
     
 }
 
+#if ENABLE_FREQDOMAIN
 void GammatoneFilter::process_freq(const float* inBuffer, float* outBuffer, int num_samples)
 {
     AudioBuffer<float> in_buf(1, num_samples);
@@ -152,6 +154,7 @@ void GammatoneFilter::process_freq(const float* inBuffer, float* outBuffer, int 
     
     std::copy(in_block.getChannelPointer(0), in_block.getChannelPointer(0) + num_samples, outBuffer);
 }
+#endif
 
 //////////////////////////////////////////////
 float GammatoneFilter::get_centre_freq()

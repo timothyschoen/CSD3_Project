@@ -53,6 +53,7 @@ struct XYInspector : public Component
     SafePointer<XYSlider> selection = nullptr;
     
     AnimatedSlider volume;
+    AnimatedSlider drive;
     AnimatedSlider mod_depth;
     AnimatedSlider mod_rate;
     
